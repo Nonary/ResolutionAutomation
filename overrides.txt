@@ -1,0 +1,1 @@
+1280x800x60=3840x2400x60 # For Steam Deck users, typically if the user has a 4k screen this resolution is supported and will auto swap aspect ratios for them.
