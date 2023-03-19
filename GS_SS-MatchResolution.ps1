@@ -230,7 +230,7 @@ function UserIsStreaming() {
 
 
 $lastStreamed = [System.DateTime]::MinValue
-$hostResolution = Get-CimInstance -ClassName Win32_videocontroller  | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution -First 1
+$hostResolution = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution -First 1
 $onStreamEventTriggered = $false
 while ($true) {
     $delaySettings = if (IsSunshineUser) { [pscustomobject]@{StartDelay = 1; EndDelay = 1; } } Else { [pscustomobject]@{StartDelay = 8; EndDelay = 0 } }
@@ -238,7 +238,7 @@ while ($true) {
         $lastStreamed = Get-Date
         if (!$onStreamEventTriggered) {
             # Capture host resolution again, in case it changed recently.
-            $hostResolution = Get-CimInstance -ClassName Win32_videocontroller  | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution -First 1
+            $hostResolution = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution -First 1
             Start-Sleep -Seconds $delaySettings.StartDelay
             $resolution = Apply-Overrides -resolution (Get-ClientResolution)
             Set-ScreenResolution -Width $resolution.width -Height $resolution.height -Freq $resolution.refresh
