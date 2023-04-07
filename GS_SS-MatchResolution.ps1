@@ -249,6 +249,7 @@ while ($true) {
     elseif ($onStreamEventTriggered -and ((Get-Date) - $lastStreamed).TotalSeconds -gt $delaySettings.EndDelay) {
         Set-ScreenResolution -Width $hostResolution.CurrentHorizontalResolution -Height $hostResolution.CurrentVerticalResolution -Freq $hostResolution.CurrentRefreshRate
         $onStreamEventTriggered = $false
+        break;
         
     }
     Start-Sleep -Seconds 1

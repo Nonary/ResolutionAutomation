@@ -1,0 +1,1 @@
+powershell.exe -executionpolicy bypass -windowstyle hidden -file "{INSERT_PATH_HERE_TO_MAIN_SCRIPT}\Activate.ps1"
