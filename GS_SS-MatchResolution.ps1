@@ -19,6 +19,7 @@ while ($true) {
     elseif ($onStreamEventTriggered -and ((Get-Date) - $lastStreamed).TotalSeconds -gt $delaySettings.EndDelay) {
         OnStreamEnd $hostResolution
         $onStreamEventTriggered = $false
+        break;
         
     }
     Start-Sleep -Seconds 1
