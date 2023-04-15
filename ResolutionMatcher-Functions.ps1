@@ -1,12 +1,7 @@
 param($terminate)
+$path = "F:\sources\ResolutionAutomation"
 
-# If reverting the resolution fails, you can set a manual override here.
-$host_resolution_override = @{
-    Width   = 0
-    Height  = 0
-    Refresh = 0
-}
-
+Set-Location $path
 
 Add-Type -TypeDefinition @"
 using System;
@@ -56,23 +51,24 @@ public class DisplaySettings {
     }
 }
 "@
-
+Write-Output "Inside dotsource"
+Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
+$hostResolutions = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
+$announcement = "Hello World"
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
-    $tolerance = 2 # Set the tolerance value for the frequency comparison
     $devMode = New-Object DisplaySettings+DEVMODE
     $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
     $modeNum = 0
-
+    
     while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
-        $frequencyDiff = [Math]::Abs($devMode.dmDisplayFrequency - $frequency)
-        if ($devMode.dmPelsWidth -eq $width -and $devMode.dmPelsHeight -eq $height -and $frequencyDiff -le $tolerance) {
+        if ($devMode.dmPelsWidth -eq $width -and $devMode.dmPelsHeight -eq $height -and $devMode.dmDisplayFrequency -eq $frequency) {
             $result = [DisplaySettings]::ChangeDisplaySettings([ref]$devMode, 0)
             if ($result -eq 0) {
                 Write-Host "Resolution changed successfully."
             }
             else {
-                throw "Failed to change resolution. Error code: $result"
+                Write-Host "Failed to change resolution. Error code: $result"
             }
             break
         }
@@ -80,88 +76,27 @@ Function Set-ScreenResolution($width, $height, $frequency) {
     }
 }
 
-function Get-HostResolution {
-    $devMode = New-Object DisplaySettings+DEVMODE
-    $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
-    $modeNum = -1
-
-    while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
-        return @{
-            CurrentHorizontalResolution = $devMode.dmPelsWidth
-            CurrentVerticalResolution   = $devMode.dmPelsHeight
-            CurrentRefreshRate          = $devMode.dmDisplayFrequency
-        }
-    }
-}
-
 
 function Get-ClientResolution() {
-    $sunshineUser = IsSunshineUser
-    $log_path = If ($sunshineUser) { "$env:WINDIR\Temp\sunshine.log" } Else { "$env:ProgramData\NVIDIA Corporation\NvStream\NvStreamerCurrent.log" }
+    $log_path = "$env:WINDIR\Temp\sunshine.log" 
+    $log_text = Get-Content  $log_path
+    $clientRes = $log_text | Select-String "video\[0\]\.clientViewport.*:\s?(?<res>\d+)" | Select-Object matches -ExpandProperty matches -Last 2
+    $clientRefresh = $log_text | Select-String "video\[0\]\.maxFPS:\s?(?<hz>\d+)" | Select-Object matches -ExpandProperty matches -Last 1
 
+    [int]$client_width = $clientRes[0].Groups['res'].Value
+    [int]$client_height = $clientRes[1].Groups['res'].Value
+    [int]$client_hz = $clientRefresh[0].Groups['hz'].Value
 
-    # Initialize a hash table to store the client resolution values
-    $clientRes = @{
-        Height  = 0
-        Width   = 0
-        Refresh = 0
+    return @{
+        width   = $client_width
+        height  = $client_height
+        refresh = $client_hz
     }
-
-    # Define regular expressions to match the height, width, and refresh rate values in the log file
-    $widthRegex = [regex] "video\[0\]\.clientViewportWd:\s?(\d+)"
-    $heightRegex = [regex] "video\[0\]\.clientViewportHt:\s?(\d+)"
-    $hzRegex = [regex] "video\[0\]\.maxFPS:\s?(?<hz>\d+)"
-
-    # Read the log file into an array of strings, split by newlines
-    $lines = Get-Content $log_path -ReadCount 0 | ForEach-Object { $_ -split "`n" }
-    
-    # Iterate through the array of strings in reverse order
-    for ($i = $lines.Length - 1; $i -ge 0; $i--) {
-        # Get the current line as a string
-        [string]$line = $lines[$i]
-
-        # Skip to the next line if the line doesn't start with "a=x"
-        # This is a performance optimization, this will match much faster than regular expressions.
-        if ($sunshineUser -and $line.StartsWith("a=x")) {
-            continue;
-        }
-
-        # Attempt to match the height value in the line
-        if ($clientRes.Height -eq 0) {
-            $clientResMatch = $heightRegex.Match($line)
-            if ($clientResMatch.Success) {
-                $clientRes.Height = [int]$clientResMatch.Groups[1].Value
-            }
-        }
-
-        # Attempt to match the width value in the line
-        if ($clientRes.Width -eq 0) {
-            $clientResMatch = $widthRegex.Match($line)
-            if ($clientResMatch.Success) {
-                $clientRes.Width = [int]$clientResMatch.Groups[1].Value
-            }
-        }
-
-        # Attempt to match the refresh rate value in the line
-        if ($clientRes.Refresh -eq 0) {
-            $clientRefreshMatch = $hzRegex.Match($line)
-            if ($clientRefreshMatch.Success) {
-                $clientRes.Refresh = [int]$clientRefreshMatch.Groups[1].Value
-            }
-        }
-
-        # Exit the loop if all three values have been found
-        if ($clientRes.Height -gt 0 -and $clientRes.Width -gt 0 -and $clientRes.Refresh -gt 0) {
-            break
-        }
-    }
-
-    return $clientRes
 }
 
 function Apply-Overrides($resolution) {
 
-    $overrides = Get-Content ".\overrides.txt" -ErrorAction SilentlyContinue
+    $overrides = Get-Content "$path\overrides.txt" -ErrorAction SilentlyContinue
     $width = $resolution.width
     $height = $resolution.height
     $refresh = $resolution.refresh
@@ -193,15 +128,31 @@ function Apply-Overrides($resolution) {
 
 
 function UserIsStreaming() {
-    if (IsSunshineUser) {
-        return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
-    }
-
-    return $null -ne (Get-Process nvstreamer -ErrorAction SilentlyContinue)
+    return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
 }
 
 
 
+function Stop-ResolutionMatcherScript() {
+
+    $pipeExists = Get-ChildItem -Path "\\.\pipe\" | Where-Object { $_.Name -eq "ResolutionMatcher" } 
+    if ($pipeExists.Length -gt 0) {
+        $pipeName = "ResolutionMatcher"
+        $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipeName, [System.IO.Pipes.PipeDirection]::Out)
+        $pipe.Connect()
+        $streamWriter = New-Object System.IO.StreamWriter($pipe)
+        $streamWriter.WriteLine("Terminate")
+        try {
+            $streamWriter.Flush()
+            $streamWriter.Dispose()
+            $pipe.Dispose()
+        }
+        catch {
+            # We don't care if the disposal fails, this is common with async pipes.
+            # Also, this powershell script will terminate anyway.
+        }
+    }
+}
 
 function OnStreamStart() {
     $resolution = Apply-Overrides -resolution (Get-ClientResolution)
@@ -210,23 +161,22 @@ function OnStreamStart() {
     Set-ScreenResolution -Width $resolution.width -Height $resolution.height -Freq $resolution.refresh
 }
 
-function OnStreamEnd($hostResolution) {
-
-    if (($host_resolution_override.Values | Measure-Object -Sum).Sum -gt 1000) {
-        $hostResolution = @{
-            CurrentHorizontalResolution = $host_resolution_override['Width']
-            CurrentVerticalResolution   = $host_resolution_override['Height']
-            CurrentRefreshRate          = $host_resolution_override['Refresh']
+function OnStreamEnd() {
+    foreach ($resolution in $hostResolutions) {
+        try {
+            Write-Host "Attempting to set resolution to the following values"
+            $resolution
+            Set-ScreenResolution -Width $resolution.CurrentHorizontalResolution -Height $resolution.CurrentVerticalResolution -Freq $resolution.CurrentRefreshRate
+            break;
+        }
+        catch {
+            Write-Host "Failed to set resolution, will attempt to try again if there are any leftover resolutions"
         }
     }
-    Write-Host "Attempting to set resolution to the following values"
-    $hostResolution
-    Set-ScreenResolution -Width $hostResolution.CurrentHorizontalResolution -Height $hostResolution.CurrentVerticalResolution -Freq $hostResolution.CurrentRefreshRate   
+
 }
+    
 
-
-
-
-function IsSunshineUser() {
-    return $null -ne (Get-Process sunshine -ErrorAction SilentlyContinue)
+if ($terminate) {
+    Stop-ResolutionMatcherScript | Out-Null
 }
