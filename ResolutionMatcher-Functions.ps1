@@ -1,5 +1,5 @@
 param($terminate)
-$path = "F:\sources\ResolutionAutomation"
+$path = "Insert Path Here, or Run the Install_as_Precommand.ps1 file"
 
 Set-Location $path
 
@@ -51,10 +51,8 @@ public class DisplaySettings {
     }
 }
 "@
-Write-Output "Inside dotsource"
 Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
 $hostResolutions = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
-$announcement = "Hello World"
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
     $devMode = New-Object DisplaySettings+DEVMODE

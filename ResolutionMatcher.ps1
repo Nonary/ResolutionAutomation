@@ -1,9 +1,9 @@
 param($async)
-$path = "F:\sources\ResolutionAutomation"
+$path = "Insert Path Here, or Run the Install_as_Precommand.ps1 file"
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
-    Start-Process powershell.exe  -ArgumentList "-File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Maximized
+    Start-Process powershell.exe  -ArgumentList "-File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
     Start-Sleep -Seconds 1
 }
 
