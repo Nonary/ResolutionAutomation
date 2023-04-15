@@ -9,10 +9,10 @@ param($scriptPath)
 $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().groups -match 'S-1-5-32-544')
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
-# if (-not $isAdmin) {
-#     Start-Process powershell.exe  -Verb RunAs -ArgumentList "-NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
-#     exit
-# }
+if (-not $isAdmin) {
+    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
+    exit
+}
 
 Write-Host $scriptPath
 
@@ -39,7 +39,7 @@ function Get-GlobalPrepCommand {
 
     # Extract the current value of global_prep_cmd
     if ($globalPrepCmdLine -match '=\s*(.+)$') {
-        return $matches[1]
+        return $matches[1] | ConvertFrom-Json
     }
     else {
         Write-Information "Unable to extract current value of global_prep_cmd, this probably means user has not setup prep commands yet."
@@ -48,17 +48,16 @@ function Get-GlobalPrepCommand {
 }
 
 # Remove any existing commands that contain ResolutionMatcher from the global_prep_cmd value
-function Remove-ResolutionMatcherCommand {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        [object[]]$InputObject
-    )
-
-    if ($InputObject.do -notlike "*ResolutionMatcher*") {
-        return $InputObject
+function Remove-ResolutionMatcherCommand($commands) {
+    $filteredCommands = @()
+    foreach ($command in $commands) {
+        if ($command.do -notlike '*ResolutionMatcher*') {
+            Write-Host "Command did not match, adding $command"
+            $filteredCommands += $command
+        }
     }
 
+    return [object[]]$filteredCommands
 }
 
 # Set a new value for global_prep_cmd in the configuration file
@@ -77,7 +76,7 @@ function Set-GlobalPrepCommand {
     $config = Get-Content -Path $ConfigPath
 
     # Get the current value of global_prep_cmd as a JSON string
-    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
+    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath | ConvertTo-Json -Compress
 
     # Convert the new value to a JSON string
     $newValueJson = ConvertTo-Json -InputObject $Value -Compress
@@ -97,22 +96,15 @@ function Set-GlobalPrepCommand {
     $config | Set-Content -Path $ConfigPath -Force
 }
 
-function inverseMonitorSwapCommandsAndDeserialize() {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        [object[]]$InputObject
-    )
+function Swap-MonitorResolutionMatcherCommands($commands) {
 
-    $commands = $InputObject | ConvertFrom-Json 
+    $resCommand = $commands | Where-Object { $_.do -like '*ResolutionMatcher*' } | Select-Object -First 1
+    $monitorCommand = $commands | Where-Object { $_.do -like '*MonitorSwapAutomation*' } | Select-Object -First 1
 
-    $ResolutionMatcherCommand = $commands | Where-Object { $_.do -like '*ResolutionMatcher*' } | Select-Object -First 1
-    foreach ($command in $commands) {
-        if ($command.do -like '*MonitorSwapAutomation*') {
-            $old = $ResolutionMatcherCommand.undo
-            $ResolutionMatcherCommand.undo = $command.undo
-            $command.undo = $old
-        }
+    if ($null -ne $resCommand -and $null -ne $monitorCommand) {
+        $temp = $resCommand.undo
+        $resCommand.undo = $monitorCommand.undo
+        $monitorCommand.undo = $temp
     }
 
     return $commands
@@ -120,9 +112,9 @@ function inverseMonitorSwapCommandsAndDeserialize() {
 
 
 
-# Prior to removing, inverse the order if applicable.
-$commands = Get-GlobalPrepCommand -ConfigPath $confPath | inverseMonitorSwapCommandsAndDeserialize
-$commands = $commands | Remove-ResolutionMatcherCommand
+$commands = Get-GlobalPrepCommand -ConfigPath $confPath
+$commands = Swap-MonitorResolutionMatcherCommands $commands
+$commands = Remove-ResolutionMatcherCommand $commands
 Set-GlobalPrepCommand -ConfigPath $confPath -Value $commands
 
 Write-Host "If you didn't see any errors, that means the script uninstalled without issues! You can close this window."
