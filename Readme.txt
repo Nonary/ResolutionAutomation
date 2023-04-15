@@ -1,6 +1,6 @@
 ELI5: Changes your host resolution to match exactly with Moonlight's resolution.
-Why: GameStreaming will squish the stream if the host and clients aspect ratio does not match, this script automates making sure they match.
-     Also, some may use this script to make sure the host refresh rate is the same as the clients framerate as well.
+Why: Mostly used for users who have different aspect ratios between the client and host. 
+Or anyone that wishes to match the resolution while streaming.
 
 
 Requirements:
@@ -12,23 +12,23 @@ For Sunshine Users
     Users must have read permissions to %WINDIR%/Temp/Sunshine.log (do not change other permissions, just make sure Users has atleast read permisisons)
 
 GFE Users:
-	None
+	Unsupported.
 
 Install instructions:
     First, store this folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
     If you have to move the folder, move it, then run the installation script again.
 
-    To install, simply double click the Install Script.bat file.
-    To uninstall, simply double cliick the Uninstall Script.bat file.
+    To install, simply right click the Install_as_Precommand.ps1 file and select Run With Powershell.
+    To uninstall, do the same thing with Uninstall_as_Precommand.ps1
 
-    If you get a smartscreen warning, tell it to proceed anyway, this will only happen once.
+    This script will ask for elevated rights, because in the coming future Sunshine configuration will be locked from modifications for non-administrator users.
 
 How it works:
 
-    1. Waits for NVStreamer process to be launched if GFE, otherwise it waits for a connection from Sunshine.
-    2. Reads the NVStreamerCurrentLog.txt or Sunshine.log file to capture the hosts resolution and moonlights resolution.
-    3. Sets the hosts resolution to match the Moonlight resolution (including refresh rate).
-    4. Waits for NVStreamer Process to end or Sunshine connection to either suspend or terminate.
+    1. When you start streaming any application in Sunshine, it will start the script.
+    2. Reads Sunshine.log file to capture moonlights resolution.
+    3. Sets the hosts resolution to match the Moonlight resolution (including refresh rate), unless overrided with the eoverrides file.
+    4. Waits for Sunshine to be suspended for more than 120 seconds, or until the user ends the stream.
     5. Sets the host resolution back to the same resolution it was prior to starting the stream (including refresh rate).
 
 
