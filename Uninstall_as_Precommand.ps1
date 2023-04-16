@@ -10,11 +10,9 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().grou
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
-    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
+    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
     exit
 }
-
-Write-Host $scriptPath
 
 # Define the path to the Sunshine configuration file
 $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
@@ -52,7 +50,6 @@ function Remove-ResolutionMatcherCommand($commands) {
     $filteredCommands = @()
     foreach ($command in $commands) {
         if ($command.do -notlike '*ResolutionMatcher*') {
-            Write-Host "Command did not match, adding $command"
             $filteredCommands += $command
         }
     }
