@@ -65,7 +65,7 @@ Function Set-ScreenResolution($width, $height, $frequency) {
                 Write-Host "Resolution changed successfully."
             }
             else {
-                Write-Host "Failed to change resolution. Error code: $result"
+                throw "Failed to change resolution. Error code: $result"
             }
             break
         }
