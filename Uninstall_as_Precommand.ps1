@@ -10,7 +10,7 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().grou
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
-    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
+    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
     exit
 }
 
