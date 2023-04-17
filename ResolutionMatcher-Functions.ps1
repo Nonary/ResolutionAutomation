@@ -54,17 +54,18 @@ public class DisplaySettings {
 
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
+    $tolerance = 1 # Set the tolerance value for the frequency comparison
     $devMode = New-Object DisplaySettings+DEVMODE
     $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
     $modeNum = 0
     
     while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
-        if ($devMode.dmPelsWidth -eq $width -and $devMode.dmPelsHeight -eq $height -and $devMode.dmDisplayFrequency -eq $frequency) {
+        $frequencyDiff = [Math]::Abs($devMode.dmDisplayFrequency - $frequency)
+        if ($devMode.dmPelsWidth -eq $width -and $devMode.dmPelsHeight -eq $height -and $frequencyDiff -lt $tolerance) {
             $result = [DisplaySettings]::ChangeDisplaySettings([ref]$devMode, 0)
             if ($result -eq 0) {
                 Write-Host "Resolution changed successfully."
-            }
-            else {
+            } else {
                 throw "Failed to change resolution. Error code: $result"
             }
             break
