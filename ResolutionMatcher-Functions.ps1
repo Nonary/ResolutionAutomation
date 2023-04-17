@@ -51,8 +51,7 @@ public class DisplaySettings {
     }
 }
 "@
-Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
-$hostResolutions = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object {$_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
+
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
     $devMode = New-Object DisplaySettings+DEVMODE
@@ -159,7 +158,8 @@ function OnStreamStart() {
     Set-ScreenResolution -Width $resolution.width -Height $resolution.height -Freq $resolution.refresh
 }
 
-function OnStreamEnd() {
+function OnStreamEnd($hostResolutions) {
+
     foreach ($resolution in $hostResolutions) {
         try {
             Write-Host "Attempting to set resolution to the following values"
