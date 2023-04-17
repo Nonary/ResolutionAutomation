@@ -3,7 +3,7 @@ $path = "Insert Path Here, or Run the Install_as_Precommand.ps1 file"
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
-    Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Maximized
+    Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
     Start-Sleep -Seconds 1
 }
 
@@ -11,6 +11,7 @@ Set-Location $path
 . $path\ResolutionMatcher-Functions.ps1
 $hostResolutions = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object { $_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
 $lock = $false
+Start-Transcript -Path .\log.txt
 
 
 $mutexName = "ResolutionMatcher"
@@ -71,10 +72,10 @@ try {
 
 
 
-
-
-
+    $eventMessageCount = 0
+    Write-Host "Waiting for the next event to be called... (for starting/ending stream)"
     while ($true) {
+        $eventMessageCount += 1
         Start-Sleep -Seconds 1
         $eventFired = Get-Event -SourceIdentifier ResolutionMatcher -ErrorAction SilentlyContinue
         $pipeJob = Get-Job -Name "NamedPipeJob"
@@ -96,8 +97,9 @@ try {
             Remove-Job $pipeJob
             break;
         }
-        else {
-            Write-Host "Waiting for next event..."
+        elseif($eventMessageCount -gt 59) {
+            Write-Host "Still waiting for the next event to fire..."
+            $eventMessageCount = 0
         }
 
     
@@ -107,4 +109,5 @@ finally {
     Remove-Item "\\.\pipe\ResolutionMatcher" -ErrorAction Ignore
     $resolutionMutex.ReleaseMutex()
     Remove-Event -SourceIdentifier ResolutionMatcher -ErrorAction Ignore
+    Stop-Transcript
 }
