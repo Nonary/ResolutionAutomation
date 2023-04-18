@@ -65,7 +65,8 @@ Function Set-ScreenResolution($width, $height, $frequency) {
             $result = [DisplaySettings]::ChangeDisplaySettings([ref]$devMode, 0)
             if ($result -eq 0) {
                 Write-Host "Resolution changed successfully."
-            } else {
+            }
+            else {
                 throw "Failed to change resolution. Error code: $result"
             }
             break
@@ -77,19 +78,64 @@ Function Set-ScreenResolution($width, $height, $frequency) {
 
 function Get-ClientResolution() {
     $log_path = "$env:WINDIR\Temp\sunshine.log" 
-    $log_text = Get-Content  $log_path
-    $clientRes = $log_text | Select-String "video\[0\]\.clientViewport.*:\s?(?<res>\d+)" | Select-Object matches -ExpandProperty matches -Last 2
-    $clientRefresh = $log_text | Select-String "video\[0\]\.maxFPS:\s?(?<hz>\d+)" | Select-Object matches -ExpandProperty matches -Last 1
 
-    [int]$client_width = $clientRes[0].Groups['res'].Value
-    [int]$client_height = $clientRes[1].Groups['res'].Value
-    [int]$client_hz = $clientRefresh[0].Groups['hz'].Value
-
-    return @{
-        width   = $client_width
-        height  = $client_height
-        refresh = $client_hz
+    # Initialize a hash table to store the client resolution values
+    $clientRes = @{
+        Height = 0
+        Width  = 0
+        Refresh = 0
     }
+
+    # Define regular expressions to match the height, width, and refresh rate values in the log file
+    $widthRegex = [regex] "a=x-nv-video\[0\]\.clientViewportWd:(\d+)"
+    $heightRegex = [regex] "a=x-nv-video\[0\]\.clientViewportHt:(\d+)"
+    $hzRegex = [regex] "a=x-nv-video\[0\]\.maxFPS:(?<hz>\d+)"
+
+    # Read the log file into an array of strings, split by newlines
+    $lines = Get-Content $log_path -ReadCount 0 | ForEach-Object { $_ -split "`n" }
+    
+    # Iterate through the array of strings in reverse order
+    for ($i = $lines.Length - 1; $i -ge 0; $i--) {
+        # Get the current line as a string
+        [string]$line = $lines[$i]
+
+        # Skip to the next line if the line doesn't start with "a=x"
+        # This is a performance optimization, this will match much faster than regular expressions.
+        if(-not $line.StartsWith("a=x")){
+            continue;
+        }
+
+        # Attempt to match the height value in the line
+        if ($clientRes.Height -eq 0) {
+            $clientResMatch = $heightRegex.Match($line)
+            if ($clientResMatch.Success) {
+                $clientRes.Height = [int]$clientResMatch.Groups[1].Value
+            }
+        }
+
+        # Attempt to match the width value in the line
+        if ($clientRes.Width -eq 0) {
+            $clientResMatch = $widthRegex.Match($line)
+            if ($clientResMatch.Success) {
+                $clientRes.Width = [int]$clientResMatch.Groups[1].Value
+            }
+        }
+
+        # Attempt to match the refresh rate value in the line
+        if ($clientRes.Refresh -eq 0) {
+            $clientRefreshMatch = $hzRegex.Match($line)
+            if ($clientRefreshMatch.Success) {
+                $clientRes.Refresh = [int]$clientRefreshMatch.Groups[1].Value
+            }
+        }
+
+        # Exit the loop if all three values have been found
+        if ($clientRes.Height -gt 0 -and $clientRes.Width -gt 0 -and $clientRes.Refresh -gt 0) {
+            break
+    }
+    }
+
+    return $clientRes
 }
 
 function Apply-Overrides($resolution) {
