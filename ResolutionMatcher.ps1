@@ -1,5 +1,5 @@
 param($async)
-$path = "Insert Path Here, or Run the Install_as_Precommand.ps1 file"
+
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
@@ -7,8 +7,8 @@ if ($null -eq $async) {
     Start-Sleep -Seconds 1
 }
 
-Set-Location $path
-. $path\ResolutionMatcher-Functions.ps1
+Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+. .\ResolutionMatcher-Functions.ps1
 $hostResolutions = Get-HostResolution
 $lock = $false
 Start-Transcript -Path .\log.txt
@@ -27,8 +27,7 @@ try {
     
     # Asynchronously start the Resolution Matcher, so we can use a named pipe to terminate it.
     Start-Job -Name ResolutionMatcherJob -ScriptBlock {
-        param($path)
-        . $path\MonitorSwap-Functions.ps1
+        . .\MonitorSwap-Functions.ps1
         $lastStreamed = Get-Date
 
 
@@ -49,7 +48,7 @@ try {
             Start-Sleep -Seconds 1
         }
     
-    } -ArgumentList $path
+    }
 
 
     # To allow other powershell scripts to communicate to this one.
