@@ -1,4 +1,6 @@
 param($terminate)
+
+# If reverting the resolution fails, you can set a manual override here.
 $host_resolution_override = @{
     Width   = 0
     Height  = 0
@@ -79,6 +81,20 @@ Function Set-ScreenResolution($width, $height, $frequency) {
     }
 }
 
+function Get-HostResolution {
+    $devMode = New-Object DisplaySettings+DEVMODE
+    $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
+    $modeNum = -1
+
+    while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
+        return @{
+            CurrentHorizontalResolution = $devMode.dmPelsWidth
+            CurrentVerticalResolution   = $devMode.dmPelsHeight
+            CurrentRefreshRate          = $devMode.dmDisplayFrequency
+        }
+    }
+}
+
 
 function Get-ClientResolution() {
     $log_path = "$env:WINDIR\Temp\sunshine.log" 
@@ -136,7 +152,7 @@ function Get-ClientResolution() {
         # Exit the loop if all three values have been found
         if ($clientRes.Height -gt 0 -and $clientRes.Width -gt 0 -and $clientRes.Refresh -gt 0) {
             break
-    }
+        }
     }
 
     return $clientRes
@@ -209,31 +225,20 @@ function OnStreamStart() {
     Set-ScreenResolution -Width $resolution.width -Height $resolution.height -Freq $resolution.refresh
 }
 
-function OnStreamEnd($hostResolutions) {
-
-
+function OnStreamEnd($hostResolution) {
 
     if (($host_resolution_override.Values | Measure-Object -Sum).Sum -gt 1000) {
-        $hostResolutions = @(@{
-                CurrentHorizontalResolution = $host_resolution_override['Width']
-                CurrentVerticalResolution   = $host_resolution_override['Height']
-                CurrentRefreshRate          = $host_resolution_override['Refresh']
-            })
-    }
-
-    foreach ($resolution in $hostResolutions) {
-        try {
-            Write-Host "Attempting to set resolution to the following values"
-            $resolution
-            Set-ScreenResolution -Width $resolution.CurrentHorizontalResolution -Height $resolution.CurrentVerticalResolution -Freq $resolution.CurrentRefreshRate
-            break;
-        }
-        catch {
-            Write-Host "Failed to set resolution, will attempt to try again if there are any leftover resolutions"
+        $hostResolution = @{
+            CurrentHorizontalResolution = $host_resolution_override['Width']
+            CurrentVerticalResolution   = $host_resolution_override['Height']
+            CurrentRefreshRate          = $host_resolution_override['Refresh']
         }
     }
-
+    Write-Host "Attempting to set resolution to the following values"
+    $hostResolution
+    Set-ScreenResolution -Width $resolution.CurrentHorizontalResolution -Height $resolution.CurrentVerticalResolution -Freq $resolution.CurrentRefreshRate   
 }
+
     
 
 if ($terminate) {
