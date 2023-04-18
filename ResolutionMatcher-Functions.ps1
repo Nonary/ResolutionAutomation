@@ -7,7 +7,6 @@ $host_resolution_override = @{
     Refresh = 0
 }
 
-Set-Location $path
 
 Add-Type -TypeDefinition @"
 using System;
@@ -160,7 +159,7 @@ function Get-ClientResolution() {
 
 function Apply-Overrides($resolution) {
 
-    $overrides = Get-Content "$path\overrides.txt" -ErrorAction SilentlyContinue
+    $overrides = Get-Content ".\overrides.txt" -ErrorAction SilentlyContinue
     $width = $resolution.width
     $height = $resolution.height
     $refresh = $resolution.refresh
@@ -236,7 +235,7 @@ function OnStreamEnd($hostResolution) {
     }
     Write-Host "Attempting to set resolution to the following values"
     $hostResolution
-    Set-ScreenResolution -Width $resolution.CurrentHorizontalResolution -Height $resolution.CurrentVerticalResolution -Freq $resolution.CurrentRefreshRate   
+    Set-ScreenResolution -Width $hostResolution.CurrentHorizontalResolution -Height $hostResolution.CurrentVerticalResolution -Freq $hostResolution.CurrentRefreshRate   
 }
 
     

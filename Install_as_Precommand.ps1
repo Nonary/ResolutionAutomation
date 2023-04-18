@@ -54,29 +54,6 @@ $scriptRoot = Split-Path $scriptPath -Parent
 
 
 
-function FillOut-VariableOnPowerShellScript($scriptFilePath, $variableName, $value) {
-    # Define the path to the file you want to modify
-
-    # Define the regular expression to search for and the new value you want to replace it with
-    $searchPattern = "(\`$$variableName\s*=\s*)`"([^`"]*)`""
-
-    # Read the contents of the file into a variable
-    $content = Get-Content $scriptFilePath
-    
-
-    # Loop through each line in the file
-    for ($i = 0; $i -lt $content.Count; $i++) {
-        # If the current line matches the search pattern, replace it with the new value
-        if ($content[$i] -match $searchPattern) {
-            $content[$i] = $content[$i] -replace $searchPattern, "`$1`"$value`""
-        }
-    }
-
-    # Write the modified contents back to the file
-    $content | Set-Content $scriptFilePath
-
-}
-
 # Get the current value of global_prep_cmd from the configuration file
 function Get-GlobalPrepCommand {
     param (
@@ -205,10 +182,10 @@ function Add-ResolutionMatcherCommand {
     Set-GlobalPrepCommand -ConfigPath $ConfigPath -Value $globalPrepCmdArray
 }
 
-FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath $scriptPath
-FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath "$scriptRoot/ResolutionMatcher-Functions.ps1"
 # Invoke the function to add the ResolutionMatcher command
 Add-ResolutionMatcherCommand -ConfigPath $confPath -ScriptPath $scriptPath
 
+# In order for the commands to apply we have to restart the service
+Restart-Service sunshinesvc
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
