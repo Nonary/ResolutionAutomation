@@ -9,7 +9,7 @@ if ($null -eq $async) {
 
 Set-Location $path
 . $path\ResolutionMatcher-Functions.ps1
-$hostResolutions = Get-CimInstance -ClassName Win32_videocontroller  |  Where-Object { $_.CurrentRefreshRate -gt 0 -and $_.CurrentHorizontalResolution -gt 0 -and $_.CurrentVerticalResolution -gt 0 } | Select-Object CurrentRefreshRate, CurrentHorizontalResolution, CurrentVerticalResolution
+$hostResolutions = Get-HostResolution
 $lock = $false
 Start-Transcript -Path .\log.txt
 
