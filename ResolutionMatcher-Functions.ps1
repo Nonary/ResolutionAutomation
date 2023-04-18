@@ -1,5 +1,9 @@
 param($terminate)
-$path = "Insert Path Here, or Run the Install_as_Precommand.ps1 file"
+$host_resolution_override = @{
+    Width   = 0
+    Height  = 0
+    Refresh = 0
+}
 
 Set-Location $path
 
@@ -81,8 +85,8 @@ function Get-ClientResolution() {
 
     # Initialize a hash table to store the client resolution values
     $clientRes = @{
-        Height = 0
-        Width  = 0
+        Height  = 0
+        Width   = 0
         Refresh = 0
     }
 
@@ -101,7 +105,7 @@ function Get-ClientResolution() {
 
         # Skip to the next line if the line doesn't start with "a=x"
         # This is a performance optimization, this will match much faster than regular expressions.
-        if(-not $line.StartsWith("a=x")){
+        if (-not $line.StartsWith("a=x")) {
             continue;
         }
 
@@ -206,6 +210,16 @@ function OnStreamStart() {
 }
 
 function OnStreamEnd($hostResolutions) {
+
+
+
+    if (($host_resolution_override.Values | Measure-Object -Sum).Sum -gt 1000) {
+        $hostResolutions = @(@{
+                CurrentHorizontalResolution = $host_resolution_override['Width']
+                CurrentVerticalResolution   = $host_resolution_override['Height']
+                CurrentRefreshRate          = $host_resolution_override['Refresh']
+            })
+    }
 
     foreach ($resolution in $hostResolutions) {
         try {
