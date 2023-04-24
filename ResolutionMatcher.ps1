@@ -25,9 +25,9 @@ if (-not $resolutionMutex.WaitOne(0)) {
 
 try {
     
-    # Asynchronously start the Resolution Matcher, so we can use a named pipe to terminate it.
+    # Asynchronously start the ResolutionMatcher, so we can use a named pipe to terminate it.
     Start-Job -Name ResolutionMatcherJob -ScriptBlock {
-        . .\MonitorSwap-Functions.ps1
+        . .\ResolutionMatcher-Functions.ps1
         $lastStreamed = Get-Date
 
 
@@ -52,7 +52,7 @@ try {
 
 
     # To allow other powershell scripts to communicate to this one.
-    Start-Job -Name NamedPipeJob -ScriptBlock {
+    Start-Job -Name "ResolutionMatcher-Pipe" -ScriptBlock {
         $pipeName = "ResolutionMatcher"
         Remove-Item "\\.\pipe\$pipeName" -ErrorAction Ignore
         $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
@@ -77,7 +77,7 @@ try {
         $eventMessageCount += 1
         Start-Sleep -Seconds 1
         $eventFired = Get-Event -SourceIdentifier ResolutionMatcher -ErrorAction SilentlyContinue
-        $pipeJob = Get-Job -Name "NamedPipeJob"
+        $pipeJob = Get-Job -Name "ResolutionMatcher-Pipe"
         if ($null -ne $eventFired) {
             $eventName = $eventFired.MessageData
             Write-Host "Processing event: $eventName"
