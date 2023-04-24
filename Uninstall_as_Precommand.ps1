@@ -77,7 +77,6 @@ function Set-GlobalPrepCommand {
         [string]$ConfigPath,
 
         # The new value for global_prep_cmd as an array of objects
-        [Parameter(Mandatory)]
         [object[]]$Value
     )
 
@@ -107,10 +106,14 @@ function Set-GlobalPrepCommand {
 
 
 # Invoke the function to add the ResolutionMatcher command
-$commands  = Remove-ResolutionMatcherCommand -ConfigPath $confPath
+$commands = Remove-ResolutionMatcherCommand -ConfigPath $confPath
+if ($null -eq $commands) { $commands = [object[]]@() }
 Set-GlobalPrepCommand -ConfigPath $confPath -Value $commands
+Restart-Service sunshinesvc -WarningAction SilentlyContinue
+
+
 
 # In order for the commands to apply we have to restart the service
-Restart-Service sunshinesvc -WarningAction SilentlyContinue
+
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
