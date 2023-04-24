@@ -19,8 +19,6 @@ $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
 
 
 
-
-
 # Get the current value of global_prep_cmd from the configuration file
 function Get-GlobalPrepCommand {
     param (
@@ -37,7 +35,7 @@ function Get-GlobalPrepCommand {
 
     # Extract the current value of global_prep_cmd
     if ($globalPrepCmdLine -match '=\s*(.+)$') {
-        return $matches[1] | ConvertFrom-Json
+        return $matches[1]
     }
     else {
         Write-Information "Unable to extract current value of global_prep_cmd, this probably means user has not setup prep commands yet."
@@ -46,14 +44,28 @@ function Get-GlobalPrepCommand {
 }
 
 # Remove any existing commands that contain ResolutionMatcher from the global_prep_cmd value
-function Remove-ResolutionMatcherCommand($commands) {
+function Remove-ResolutionMatcherCommand {
+    param (
+        # The path to the configuration file
+        [Parameter(Mandatory)]
+        [string]$ConfigPath
+    )
+
+    # Get the current value of global_prep_cmd as a JSON string
+    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
+
+    # Convert the JSON string to an array of objects
+    $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
     $filteredCommands = @()
-    foreach ($command in $commands) {
-        if ($command.do -notlike '*ResolutionMatcher*') {
-            $filteredCommands += $command
+
+    # Remove any ResolutionMatcher Commands
+    for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
+        if (-not ($globalPrepCmdArray[$i].do -like "*ResolutionMatcher*")) {
+            $filteredCommands += $globalPrepCmdArray[$i]
         }
     }
 
+    # Return the modified array of objects
     return [object[]]$filteredCommands
 }
 
@@ -73,7 +85,7 @@ function Set-GlobalPrepCommand {
     $config = Get-Content -Path $ConfigPath
 
     # Get the current value of global_prep_cmd as a JSON string
-    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath | ConvertTo-Json -Compress
+    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
 
     # Convert the new value to a JSON string
     $newValueJson = ConvertTo-Json -InputObject $Value -Compress
@@ -93,26 +105,12 @@ function Set-GlobalPrepCommand {
     $config | Set-Content -Path $ConfigPath -Force
 }
 
-function Swap-MonitorResolutionMatcherCommands($commands) {
 
-    $resCommand = $commands | Where-Object { $_.do -like '*ResolutionMatcher*' } | Select-Object -First 1
-    $monitorCommand = $commands | Where-Object { $_.do -like '*MonitorSwapAutomation*' } | Select-Object -First 1
-
-    if ($null -ne $resCommand -and $null -ne $monitorCommand) {
-        $temp = $resCommand.undo
-        $resCommand.undo = $monitorCommand.undo
-        $monitorCommand.undo = $temp
-    }
-
-    return $commands
-}
-
-
-
-$commands = Get-GlobalPrepCommand -ConfigPath $confPath
-$commands = Swap-MonitorResolutionMatcherCommands $commands
-$commands = Remove-ResolutionMatcherCommand $commands
+# Invoke the function to add the ResolutionMatcher command
+$commands  = Remove-ResolutionMatcherCommand -ConfigPath $confPath
 Set-GlobalPrepCommand -ConfigPath $confPath -Value $commands
 
-Write-Host "If you didn't see any errors, that means the script uninstalled without issues! You can close this window."
+# In order for the commands to apply we have to restart the service
+Restart-Service sunshinesvc -WarningAction SilentlyContinue
+Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 

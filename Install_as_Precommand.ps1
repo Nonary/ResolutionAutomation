@@ -93,8 +93,8 @@ function Remove-ResolutionMatcherCommand {
     $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
     $filteredCommands = @()
 
-    # Loop through the array in reverse order and remove any commands that contain ResolutionMatcher
-    for ($i = $globalPrepCmdArray.Count - 1; $i -ge 0; $i--) {
+    # Remove any ResolutionMatcher Commands
+    for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
         if (-not ($globalPrepCmdArray[$i].do -like "*ResolutionMatcher*")) {
             $filteredCommands += $globalPrepCmdArray[$i]
         }
@@ -163,18 +163,8 @@ function Add-ResolutionMatcherCommand {
         undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\ResolutionMatcher-Functions.ps1`" $true"
     }
 
-    # If the Monitor Swapper is also installed, we need to reverse the undo commands because Sunshine executes undo commands backwards.
-    # This would cause resolution to revert on the primary display instead of the intended behavior.
-    foreach ($command in $globalPrepCmdArray) {
-        if ($command.do -like '*MonitorSwapAutomation*') {
-            $old = $ResolutionMatcherCommand.undo
-            $ResolutionMatcherCommand.undo = $command.undo
-            $command.undo = $old
-        }
-    }
-
     # Add the new object to the global_prep_cmd array
-    $globalPrepCmdArray = @($globalPrepCmdArray, $ResolutionMatcherCommand) | Where-Object { $_ }
+    [object[]]$globalPrepCmdArray += $ResolutionMatcherCommand
 
 
 
@@ -186,6 +176,6 @@ function Add-ResolutionMatcherCommand {
 Add-ResolutionMatcherCommand -ConfigPath $confPath -ScriptPath $scriptPath
 
 # In order for the commands to apply we have to restart the service
-Restart-Service sunshinesvc
+Restart-Service sunshinesvc -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
