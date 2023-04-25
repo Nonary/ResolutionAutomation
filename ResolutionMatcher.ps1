@@ -4,7 +4,7 @@ param($async)
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
     Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
-    Start-Sleep -Seconds 1
+    exit
 }
 
 Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
@@ -32,6 +32,8 @@ try {
 
 
         Register-EngineEvent -SourceIdentifier ResolutionMatcher -Forward
+        # Give Sunshine enough time to write to log file, so we can capture the client resolution.
+        Start-Sleep -Seconds 2
         New-Event -SourceIdentifier ResolutionMatcher -MessageData "Start"
         while ($true) {
             if ((IsCurrentlyStreaming)) {
