@@ -132,7 +132,8 @@ function Set-GlobalPrepCommand {
     }
     catch {
         # If it failed, it probably does not exist yet.
-        $config += "global_prep_cmd = $($newValueJson)"
+        # In the event the config only has one line, we will cast this to an object array so it appends a new line automatically.
+        [object[]]$config += "global_prep_cmd = $($newValueJson)"
     }
 
 

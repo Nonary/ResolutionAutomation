@@ -95,7 +95,7 @@ function Set-GlobalPrepCommand {
     }
     catch {
         # If it failed, it probably does not exist yet.
-        $config += "global_prep_cmd = $($newValueJson)"
+        [object[]]$config += "global_prep_cmd = $($newValueJson)"
     }
 
 
