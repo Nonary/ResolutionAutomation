@@ -32,8 +32,10 @@
 ## Repeat the same prompt principles, and basically 70% of this script is entirely written by Artificial Intelligence. Yay!
 
 ## Refactor Prompt (GPT-4): Please refactor the following code, remove duplication and define better function names, once finished you will also add documentation and comments to each function.
-param($scriptPath, $install)
-
+param($install)
+$filePath = $($MyInvocation.MyCommand.Path)
+$scriptRoot = Split-Path $filePath -Parent
+$scriptPath = "$scriptRoot\ResolutionMatcher.ps1"
 
 
 # This script modifies the global_prep_cmd setting in the Sunshine configuration file
@@ -44,7 +46,7 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().grou
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
-    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments) $install"
+    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$filePath`" $install"
     exit
 }
 

@@ -1,1 +1,1 @@
-powershell.exe -executionpolicy bypass -file ./Installer.ps1 . False
+powershell.exe -executionpolicy bypass -file ./Installer.ps1 False
