@@ -32,7 +32,7 @@
 ## Repeat the same prompt principles, and basically 70% of this script is entirely written by Artificial Intelligence. Yay!
 
 ## Refactor Prompt (GPT-4): Please refactor the following code, remove duplication and define better function names, once finished you will also add documentation and comments to each function.
-param($scriptPath)
+param($scriptPath, $install)
 
 
 
@@ -44,7 +44,7 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().grou
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
-    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
+    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "ResolutionMatcher.ps1")`" $($MyInvocation.MyCommand.UnboundArguments) $install"
     exit
 }
 
@@ -56,14 +56,9 @@ $scriptRoot = Split-Path $scriptPath -Parent
 
 # Get the current value of global_prep_cmd from the configuration file
 function Get-GlobalPrepCommand {
-    param (
-        # The path to the configuration file
-        [Parameter(Mandatory)]
-        [string]$ConfigPath
-    )
 
     # Read the contents of the configuration file into an array of strings
-    $config = Get-Content -Path $ConfigPath
+    $config = Get-Content -Path $confPath
 
     # Find the line that contains the global_prep_cmd setting
     $globalPrepCmdLine = $config | Where-Object { $_ -match '^global_prep_cmd\s*=' }
@@ -80,14 +75,9 @@ function Get-GlobalPrepCommand {
 
 # Remove any existing commands that contain ResolutionMatcher from the global_prep_cmd value
 function Remove-ResolutionMatcherCommand {
-    param (
-        # The path to the configuration file
-        [Parameter(Mandatory)]
-        [string]$ConfigPath
-    )
 
     # Get the current value of global_prep_cmd as a JSON string
-    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
+    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $confPath
 
     # Convert the JSON string to an array of objects
     $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
@@ -100,28 +90,27 @@ function Remove-ResolutionMatcherCommand {
         }
     }
 
-
-    # Return the modified array of objects
     return [object[]]$filteredCommands
 }
 
 # Set a new value for global_prep_cmd in the configuration file
 function Set-GlobalPrepCommand {
     param (
-        # The path to the configuration file
-        [Parameter(Mandatory)]
-        [string]$ConfigPath,
 
         # The new value for global_prep_cmd as an array of objects
-        [Parameter(Mandatory)]
         [object[]]$Value
     )
 
+    if ($null -eq $Value) {
+        $Value = [object[]]@()
+    }
+
+
     # Read the contents of the configuration file into an array of strings
-    $config = Get-Content -Path $ConfigPath
+    $config = Get-Content -Path $confPath
 
     # Get the current value of global_prep_cmd as a JSON string
-    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
+    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $confPath
 
     # Convert the new value to a JSON string
     $newValueJson = ConvertTo-Json -InputObject $Value -Compress
@@ -133,33 +122,30 @@ function Set-GlobalPrepCommand {
     catch {
         # If it failed, it probably does not exist yet.
         # In the event the config only has one line, we will cast this to an object array so it appends a new line automatically.
-        [object[]]$config += "global_prep_cmd = $($newValueJson)"
+
+        if ($Value.Length -eq 0) {
+            [object[]]$config += "global_prep_cmd = []"
+        }
+        else {
+            [object[]]$config += "global_prep_cmd = $($newValueJson)"
+        }
     }
 
 
 
     # Write the modified config array back to the file
-    $config | Set-Content -Path $ConfigPath -Force
+    $config | Set-Content -Path $confPath -Force
 }
 
 # Add a new command to run ResolutionMatcher.ps1 to the global_prep_cmd value
 function Add-ResolutionMatcherCommand {
-    param (
-        # The path to the configuration file
-        [Parameter(Mandatory)]
-        [string]$ConfigPath,
-
-        # The path to the ResolutionMatcher script
-        [Parameter(Mandatory)]
-        [string]$ScriptPath
-    )
 
     # Remove any existing commands that contain ResolutionMatcher from the global_prep_cmd value
-    $globalPrepCmdArray = Remove-ResolutionMatcherCommand -ConfigPath $ConfigPath
+    $globalPrepCmdArray = Remove-ResolutionMatcherCommand -ConfigPath $confPath
 
     # Create a new object with the command to run ResolutionMatcher.ps1
     $ResolutionMatcherCommand = [PSCustomObject]@{
-        do       = "powershell.exe -executionpolicy bypass -file `"$($ScriptPath)`""
+        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`""
         elevated = "false"
         undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\ResolutionMatcher-Functions.ps1`" $true"
     }
@@ -167,14 +153,18 @@ function Add-ResolutionMatcherCommand {
     # Add the new object to the global_prep_cmd array
     [object[]]$globalPrepCmdArray += $ResolutionMatcherCommand
 
-
-
-    # Set the new value for global_prep_cmd in the configuration file
-    Set-GlobalPrepCommand -ConfigPath $ConfigPath -Value $globalPrepCmdArray
+    return [object[]]$globalPrepCmdArray
+}
+$commands = @()
+if ($install -eq "True") {
+    $commands = Add-ResolutionMatcherCommand
+}
+else {
+    $commands = Remove-ResolutionMatcherCommand 
 }
 
-# Invoke the function to add the ResolutionMatcher command
-Add-ResolutionMatcherCommand -ConfigPath $confPath -ScriptPath $scriptPath
+Set-GlobalPrepCommand $commands
+
 
 # In order for the commands to apply we have to restart the service
 Restart-Service sunshinesvc -WarningAction SilentlyContinue
