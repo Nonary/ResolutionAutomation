@@ -20,7 +20,7 @@ if($taskExists){
 
 $task = New-ScheduledTask -Action $action -Trigger $trigger -Settings $settings
 
-Register-ScheduledTask -InputObject $task -User $env:USERNAME -TaskName "Match Sunshine or GameStream Resolution" | Out-Null
+Register-ScheduledTask -InputObject $task -TaskName "Match Sunshine or GameStream Resolution" | Out-Null
 
 Write-Host "Task was installed sucessfully."
 Start-ScheduledTask -TaskName "Match Sunshine or GameStream Resolution" | Out-Null
