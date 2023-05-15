@@ -1,1 +1,1 @@
-pwsh -noexit -executionpolicy bypass -file "./InstallTask.ps1" true
+powershell.exe -noexit -executionpolicy bypass -file "./InstallTask.ps1" true
