@@ -167,8 +167,8 @@ else {
 
 Set-GlobalPrepCommand $commands
 
-
+$sunshineService = Get-Service -ErrorAction Ignore | Where-Object {$_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService'}
 # In order for the commands to apply we have to restart the service
-Restart-Service sunshinesvc -WarningAction SilentlyContinue
+$sunshineService | Restart-Service  -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
