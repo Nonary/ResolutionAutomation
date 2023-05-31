@@ -1,10 +1,18 @@
+## Note
+If you're using Sunshine 0.19.1 or greater, this script is available as a pre-command here: https://github.com/Nonary/ResolutionAutomation/releases/tag/precommand
+
+Pre-commands will launch immediately when a stream starts, rather than polling behind the scenes.
+The negative of precommands is that you will not be able to use Sunshine to remote into your computer from a **cold** reboot.
+As a workaround, you should add a new application in the WebUI **without** a command or detached command. Make sure that global prep commands is disabled when adding it.
+That will serve as a fallback option when you have to remote into your computer from a cold start.
+
 # ELI5
 Changes your host resolution to match exactly with Moonlight's resolution.
 
 # Why
-GameStreaming will squish the stream if the host and clients aspect ratio does not match, this script automates making sure they match.
-
-Also, some may use this script to make sure the host refresh rate is the same as the clients framerate as well.
+The bigest use case for matching resolution is for people with different aspect ratios on the client and host, such as Steam Deck and Widescreen Users.
+If you do not match the resolution/aspect ratio, it will either squish or stretch the stream and or letterbox... or in some cases both!
+This can also be used to supersample games on client device (such as streaming 1080p and keeping host at 4k).
 
 
 # Requirements
