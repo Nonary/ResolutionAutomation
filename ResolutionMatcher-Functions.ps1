@@ -202,7 +202,7 @@ function Stop-ResolutionMatcherScript() {
     if ($pipeExists.Length -gt 0) {
         $pipeName = "ResolutionMatcher"
         $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipeName, [System.IO.Pipes.PipeDirection]::Out)
-        $pipe.Connect()
+        $pipe.Connect(5)
         $streamWriter = New-Object System.IO.StreamWriter($pipe)
         $streamWriter.WriteLine("Terminate")
         try {
