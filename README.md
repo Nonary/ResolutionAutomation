@@ -25,8 +25,8 @@ This script changes your host resolution to match exactly with Moonlight's resol
 
 ### Installation Instructions
 1. Store the downloaded folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
-2. To install, simply right-click the `Install_as_Precommand.ps1` file and select "Run With Powershell".
-3. To uninstall, do the same thing with `Uninstall_as_Precommand.ps1`.
+2. To install, double click the Install.bat file.
+3. To uninstall, double click the Uninstall.bat file.
 
 This script will ask for elevated rights because in the coming future, Sunshine configuration will be locked from modifications for non-administrator users.
 
