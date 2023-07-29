@@ -83,7 +83,7 @@ function Get-ClientResolution() {
     while ($null -ne ($line = $reader.ReadLine())) {
         # Skip to the next line if the line doesn't start with "a=x"
         # This is a performance optimization, this will match much faster than regular expressions.
-        if ($sunshineUser -and -not $line.StartsWith("a=x")) {
+        if (-not $line.StartsWith("a=x")) {
             continue;
         }
 
