@@ -50,7 +50,7 @@ function Get-HostResolution {
 }
 
 function Assert-ResolutionChange($originalRes) {
-    for ($i = 0; $i -lt 20; $i++) {
+    for ($i = 0; $i -lt 12; $i++) {
         $currentRes = Join-Overrides -resolution (Get-ClientResolution)
         if (($currentRes.Width -ne $originalRes.Width) -or ($currentRes.Height -ne $originalRes.Height) -or ($currentRes.Refresh -ne $originalRes.Refresh)) {
             # If the resolutions don't match, set the screen resolution to the current client's resolution
@@ -69,7 +69,7 @@ function Get-ClientResolution() {
     $log_path = "$env:WINDIR\Temp\sunshine.log" 
 
     # Initialize a hash table to store the client resolution values
-    $currentRes = @{
+    $clientRes = @{
         Height  = 0
         Width   = 0
         Refresh = 0
@@ -91,20 +91,20 @@ function Get-ClientResolution() {
         $match = $regex.Match($line)
 
         if ($match.Success) {
-            if ($currentRes.Height -eq 0 -and $match.Groups['ht'].Success) {
-                $currentRes.Height = [int]$match.Groups['ht'].Value
+            if ($clientRes.Height -eq 0 -and $match.Groups['ht'].Success) {
+                $clientRes.Height = [int]$match.Groups['ht'].Value
             }
 
-            if ($currentRes.Width -eq 0 -and $match.Groups['wd'].Success) {
-                $currentRes.Width = [int]$match.Groups['wd'].Value
+            if ($clientRes.Width -eq 0 -and $match.Groups['wd'].Success) {
+                $clientRes.Width = [int]$match.Groups['wd'].Value
             }
 
-            if ($currentRes.Refresh -eq 0 -and $match.Groups['hz'].Success) {
-                $currentRes.Refresh = [int]$match.Groups['hz'].Value
+            if ($clientRes.Refresh -eq 0 -and $match.Groups['hz'].Success) {
+                $clientRes.Refresh = [int]$match.Groups['hz'].Value
             }
 
             # Exit the loop if all three values have been found
-            if ($currentRes.Height -gt 0 -and $currentRes.Width -gt 0 -and $currentRes.Refresh -gt 0) {
+            if ($clientRes.Height -gt 0 -and $clientRes.Width -gt 0 -and $clientRes.Refresh -gt 0) {
                 break;
             }
         }
@@ -112,7 +112,7 @@ function Get-ClientResolution() {
 
     $reader.Dispose()
 
-    return $currentRes
+    return $clientRes
 }
 
 
@@ -193,8 +193,6 @@ function OnStreamEnd($hostResolution) {
             CurrentRefreshRate          = $host_resolution_override['Refresh']
         }
     }
-    Write-Host "Attempting to set resolution to the following values"
-    $hostResolution
     Set-ScreenResolution -Width $hostResolution.CurrentHorizontalResolution -Height $hostResolution.CurrentVerticalResolution -Freq $hostResolution.CurrentRefreshRate   
 }
 
