@@ -13,6 +13,7 @@ $host_resolution_override = @{
 
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
+    Write-Host "Setting screen resolution to $width x $height x $frequency"
     $tolerance = 2 # Set the tolerance value for the frequency comparison
     $devMode = New-Object DisplaySettings+DEVMODE
     $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
@@ -48,15 +49,15 @@ function Get-HostResolution {
     }
 }
 
-function Assert-ResolutionChange($original) {
+function Assert-ResolutionChange($originalRes) {
     for ($i = 0; $i -lt 20; $i++) {
         $currentRes = Join-Overrides -resolution (Get-ClientResolution)
-        if (($currentRes.Width -ne $original.Width) -or ($currentRes.Height -ne $original.Height) -or ($currentRes.Refresh -ne $original.Refresh)) {
+        if (($currentRes.Width -ne $originalRes.Width) -or ($currentRes.Height -ne $originalRes.Height) -or ($currentRes.Refresh -ne $originalRes.Refresh)) {
             # If the resolutions don't match, set the screen resolution to the current client's resolution
             Write-Host "The client resolution changed within the past 6 seconds, this implies the first time the resolution was changed may have been incorrect due to stale data"
-
+            Write-Host "Original Requested Resolution: $($originalRes.Width) x $($originalRes.Height) x $($originalRes.Refresh)"
+            Write-Host "Expected Requested Resolution: $($currentRes.Width) x $($currentRes.Height) x $($currentRes.Refresh)"
             Set-ScreenResolution $currentRes.Width $currentRes.Height $currentRes.Refresh
-            # Exit the loop after setting the resolution
             break
         }
         # Wait for a while before checking the resolution again
@@ -179,10 +180,8 @@ function Stop-ResolutionMatcherScript() {
 
 function OnStreamStart() {
     $expectedRes = Join-Overrides -resolution (Get-ClientResolution)
-    Write-Host "Attempting to set resolution to the following values"
-    $expectedRes
-    Set-ScreenResolution -Width 1920 -Height 1080 -Freq 120
-    Assert-ResolutionChange -resolution $expectedRes
+    Set-ScreenResolution -Width $expectedRes.Width -Height $expectedRes.Height -Freq $expectedRes.Refresh
+    Assert-ResolutionChange -originalRes $expectedRes
 }
 
 function OnStreamEnd($hostResolution) {

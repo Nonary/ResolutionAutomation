@@ -147,9 +147,9 @@ function Add-ResolutionMatcherCommand {
 
     # Create a new object with the command to run ResolutionMatcher.ps1
     $ResolutionMatcherCommand = [PSCustomObject]@{
-        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`""
+        do       = "powershell.exe -executionpolicy bypass -WindowStyle Hidden -file `"$($scriptPath)`""
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\ResolutionMatcher-Functions.ps1`" $true"
+        undo     = "powershell.exe -executionpolicy bypass -WindowStyle Hidden -file `"$($scriptRoot)\ResolutionMatcher-Functions.ps1`" $true"
     }
 
     # Add the new object to the global_prep_cmd array

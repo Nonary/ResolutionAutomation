@@ -33,7 +33,7 @@ try {
 
         Register-EngineEvent -SourceIdentifier ResolutionMatcher -Forward
         # Give Sunshine enough time to write to log file, so we can capture the client resolution.
-        # Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 2
         New-Event -SourceIdentifier ResolutionMatcher -MessageData "Start"
         while ($true) {
             if ((IsCurrentlyStreaming)) {

@@ -1,4 +1,4 @@
-// Code generated from GPT-4
+// Code generated using ChatGPT (v4)
 
 using System;
 using System.IO;
