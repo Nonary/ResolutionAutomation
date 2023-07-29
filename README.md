@@ -1,16 +1,15 @@
 ## Note
-If you're using Sunshine 0.19.1 or greater, this script is available as a pre-command here: https://github.com/Nonary/ResolutionAutomation/releases/tag/precommand
+If you're using Sunshine 0.19.1 or greater, it is recommended to use the pre-command version. This release is meant for GeForce Experience users or those who want to run this script in the background as opposted to direct integration with Sunshine itself.
 
-Pre-commands will launch immediately when a stream starts, rather than polling behind the scenes.
-The negative of precommands is that you will not be able to use Sunshine to remote into your computer from a **cold** reboot.
-As a workaround, you should add a new application in the WebUI **without** a command or detached command. Make sure that global prep commands is disabled when adding it.
-That will serve as a fallback option when you have to remote into your computer from a cold start.
+https://github.com/Nonary/ResolutionAutomation/releases/latest
+
+
 
 # ELI5
 Changes your host resolution to match exactly with Moonlight's resolution.
 
 # Why
-The bigest use case for matching resolution is for people with different aspect ratios on the client and host, such as Steam Deck and Widescreen Users.
+The biggest use case for matching resolution is for people with different aspect ratios on the client and host, such as Steam Deck and Widescreen Users.
 If you do not match the resolution/aspect ratio, it will either squish or stretch the stream and or letterbox... or in some cases both!
 This can also be used to supersample games on client device (such as streaming 1080p and keeping host at 4k).
 
@@ -21,10 +20,10 @@ This can also be used to supersample games on client device (such as streaming 1
 * Host must be Windows
 * Sunshine must be installed a service (it does not work with the zip version of Sunshine)
 * Sunshine logging level must be set to Debug
-* Users must have read permissions to `%WINDIR%/Temp/Sunshine.log` (do not change other permissions, just make sure Users has atleast read permisisons)
+* Users must have read permissions to `%WINDIR%/Temp/Sunshine.log` (do not change other permissions, just make sure Users has at least read permissions)
 
 ## GFE Users
-None
+None, should work "out of the box"
 
 # Install instructions
 First, store this folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
@@ -33,9 +32,9 @@ If you have to move the folder, move it, then run the installation script again.
 
 To install, simply double click the Install Script.bat file.
 
-To uninstall, simply double cliick the Uninstall Script.bat file.
+To uninstall, simply double click the Uninstall Script.bat file.
 
-If you get a smartscreen warning, tell it to proceed anyway, this will only happen once.
+If you get a SmartScreen warning, tell it to proceed anyway, this will only happen once.
 
 # How it works
 
