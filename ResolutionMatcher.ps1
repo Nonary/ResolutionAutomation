@@ -33,7 +33,7 @@ try {
 
         Register-EngineEvent -SourceIdentifier ResolutionMatcher -Forward
         # Give Sunshine enough time to write to log file, so we can capture the client resolution.
-        Start-Sleep -Seconds 2
+        # Start-Sleep -Seconds 2
         New-Event -SourceIdentifier ResolutionMatcher -MessageData "Start"
         while ($true) {
             if ((IsCurrentlyStreaming)) {
@@ -83,7 +83,7 @@ try {
         if ($null -ne $eventFired) {
             $eventName = $eventFired.MessageData
             Write-Host "Processing event: $eventName"
-            if($eventName -eq "Start"){
+            if ($eventName -eq "Start") {
                 OnStreamStart
             }
             elseif ($eventName -eq "End") {
@@ -98,7 +98,7 @@ try {
             Remove-Job $pipeJob
             break;
         }
-        elseif($eventMessageCount -gt 59) {
+        elseif ($eventMessageCount -gt 59) {
             Write-Host "Still waiting for the next event to fire..."
             $eventMessageCount = 0
         }

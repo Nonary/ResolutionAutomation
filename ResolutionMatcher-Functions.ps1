@@ -1,4 +1,8 @@
 param($terminate)
+Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+
+Add-Type -Path .\internals\DisplaySettings.cs
+Add-Type -Path .\internals\OptimizedLogReader.cs
 
 # If reverting the resolution fails, you can set a manual override here.
 $host_resolution_override = @{
@@ -6,56 +10,6 @@ $host_resolution_override = @{
     Height  = 0
     Refresh = 0
 }
-
-
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-
-public class DisplaySettings {
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    public struct DEVMODE {
-        private const int CCHDEVICENAME = 32;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
-        public string dmDeviceName;
-        public short dmSpecVersion;
-        public short dmDriverVersion;
-        public short dmSize;
-        public short dmDriverExtra;
-        public int dmFields;
-        public int dmPositionX;
-        public int dmPositionY;
-        public int dmDisplayOrientation;
-        public int dmDisplayFixedOutput;
-        public short dmColor;
-        public short dmDuplex;
-        public short dmYResolution;
-        public short dmTTOption;
-        public short dmCollate;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-        public string dmFormName;
-        public short dmLogPixels;
-        public int dmBitsPerPel;
-        public int dmPelsWidth;
-        public int dmPelsHeight;
-        public int dmDisplayFlags;
-        public int dmDisplayFrequency;
-        public int dmICMMethod;
-        public int dmICMIntent;
-        public int dmMediaType;
-        public int dmDitherType;
-        public int dmReserved1;
-        public int dmReserved2;
-        public int dmPanningWidth;
-        public int dmPanningHeight;
-    }
-}
-"@
 
 ## Code and type generated with ChatGPT v4, 1st prompt worked flawlessly.
 Function Set-ScreenResolution($width, $height, $frequency) { 
@@ -94,70 +48,76 @@ function Get-HostResolution {
     }
 }
 
+function Assert-ResolutionChange($original) {
+    for ($i = 0; $i -lt 20; $i++) {
+        $currentRes = Join-Overrides -resolution (Get-ClientResolution)
+        if (($currentRes.Width -ne $original.Width) -or ($currentRes.Height -ne $original.Height) -or ($currentRes.Refresh -ne $original.Refresh)) {
+            # If the resolutions don't match, set the screen resolution to the current client's resolution
+            Write-Host "The client resolution changed within the past 6 seconds, this implies the first time the resolution was changed may have been incorrect due to stale data"
+
+            Set-ScreenResolution $currentRes.Width $currentRes.Height $currentRes.Refresh
+            # Exit the loop after setting the resolution
+            break
+        }
+        # Wait for a while before checking the resolution again
+        Start-Sleep -Milliseconds 500
+    }
+}
 
 function Get-ClientResolution() {
     $log_path = "$env:WINDIR\Temp\sunshine.log" 
 
     # Initialize a hash table to store the client resolution values
-    $clientRes = @{
+    $currentRes = @{
         Height  = 0
         Width   = 0
         Refresh = 0
     }
 
-    # Define regular expressions to match the height, width, and refresh rate values in the log file
-    $widthRegex = [regex] "a=x-nv-video\[0\]\.clientViewportWd:(\d+)"
-    $heightRegex = [regex] "a=x-nv-video\[0\]\.clientViewportHt:(\d+)"
-    $hzRegex = [regex] "a=x-nv-video\[0\]\.maxFPS:(?<hz>\d+)"
+    # Define combined regular expressions to match the height, width, and refresh rate values in the log file
+    $regex = [regex] "a=x-nv-video\[0\]\.(clientViewportWd:(?<wd>\d+)|clientViewportHt:(?<ht>\d+)|maxFPS:(?<hz>\d+))"
 
-    # Read the log file into an array of strings, split by newlines
-    $lines = Get-Content $log_path -ReadCount 0 | ForEach-Object { $_ -split "`n" }
-    
-    # Iterate through the array of strings in reverse order
-    for ($i = $lines.Length - 1; $i -ge 0; $i--) {
-        # Get the current line as a string
-        [string]$line = $lines[$i]
+    $reader = New-Object ReverseFileReader -ArgumentList $log_path
 
+    while ($null -ne ($line = $reader.ReadLine())) {
         # Skip to the next line if the line doesn't start with "a=x"
         # This is a performance optimization, this will match much faster than regular expressions.
         if (-not $line.StartsWith("a=x")) {
             continue;
         }
 
-        # Attempt to match the height value in the line
-        if ($clientRes.Height -eq 0) {
-            $clientResMatch = $heightRegex.Match($line)
-            if ($clientResMatch.Success) {
-                $clientRes.Height = [int]$clientResMatch.Groups[1].Value
-            }
-        }
+        # Attempt to match the values in the line
+        $match = $regex.Match($line)
 
-        # Attempt to match the width value in the line
-        if ($clientRes.Width -eq 0) {
-            $clientResMatch = $widthRegex.Match($line)
-            if ($clientResMatch.Success) {
-                $clientRes.Width = [int]$clientResMatch.Groups[1].Value
+        if ($match.Success) {
+            if ($currentRes.Height -eq 0 -and $match.Groups['ht'].Success) {
+                $currentRes.Height = [int]$match.Groups['ht'].Value
             }
-        }
 
-        # Attempt to match the refresh rate value in the line
-        if ($clientRes.Refresh -eq 0) {
-            $clientRefreshMatch = $hzRegex.Match($line)
-            if ($clientRefreshMatch.Success) {
-                $clientRes.Refresh = [int]$clientRefreshMatch.Groups[1].Value
+            if ($currentRes.Width -eq 0 -and $match.Groups['wd'].Success) {
+                $currentRes.Width = [int]$match.Groups['wd'].Value
             }
-        }
 
-        # Exit the loop if all three values have been found
-        if ($clientRes.Height -gt 0 -and $clientRes.Width -gt 0 -and $clientRes.Refresh -gt 0) {
-            break
+            if ($currentRes.Refresh -eq 0 -and $match.Groups['hz'].Success) {
+                $currentRes.Refresh = [int]$match.Groups['hz'].Value
+            }
+
+            # Exit the loop if all three values have been found
+            if ($currentRes.Height -gt 0 -and $currentRes.Width -gt 0 -and $currentRes.Refresh -gt 0) {
+                break;
+            }
         }
     }
 
-    return $clientRes
+    $reader.Dispose()
+
+    return $currentRes
 }
 
-function Apply-Overrides($resolution) {
+
+
+
+function Join-Overrides($resolution) {
 
     $overrides = Get-Content ".\overrides.txt" -ErrorAction SilentlyContinue
     $width = $resolution.width
@@ -218,10 +178,11 @@ function Stop-ResolutionMatcherScript() {
 }
 
 function OnStreamStart() {
-    $resolution = Apply-Overrides -resolution (Get-ClientResolution)
+    $expectedRes = Join-Overrides -resolution (Get-ClientResolution)
     Write-Host "Attempting to set resolution to the following values"
-    $resolution
-    Set-ScreenResolution -Width $resolution.width -Height $resolution.height -Freq $resolution.refresh
+    $expectedRes
+    Set-ScreenResolution -Width 1920 -Height 1080 -Freq 120
+    Assert-ResolutionChange -resolution $expectedRes
 }
 
 function OnStreamEnd($hostResolution) {
