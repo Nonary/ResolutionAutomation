@@ -82,7 +82,7 @@ try {
             $eventName = $eventFired.MessageData
             Write-Host "Processing event: $eventName"
             if ($eventName -eq "Start") {
-                OnStreamStart -width $env:SUNSHINE_CLIENT_WIDTH -height $env:SUNSHINE_CLIENT_HEIGHT -frequency $env:SUNSHINE_CLIENT_FPS 
+                OnStreamStart -width $env:SUNSHINE_CLIENT_WIDTH -height $env:SUNSHINE_CLIENT_HEIGHT -refresh $env:SUNSHINE_CLIENT_FPS 
             }
             elseif ($eventName -eq "End") {
                 OnStreamEnd $hostResolutions
