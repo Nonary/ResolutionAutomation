@@ -59,7 +59,7 @@ function Join-Overrides($width, $height, $refresh) {
         $widths = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'width' }
         $refreshes = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'refresh' }
 
-        if ($widths[0].Value -eq $resolution.width -and $heights[0].Value -eq $resolution.height -and $refreshes[0].Value -eq $resolution.refresh) {
+        if ($widths[0].Value -eq $width -and $heights[0].Value -eq $height -and $refreshes[0].Value -eq $refresh) {
             $width = $widths[1].Value
             $height = $heights[1].Value
             $refresh = $refreshes[1].Value
