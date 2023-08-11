@@ -66,7 +66,7 @@ function Assert-ResolutionChange($originalRes) {
 }
 
 function Get-ClientResolution() {
-    $log_path = "$env:WINDIR\Temp\sunshine.log" 
+    $log_path = "$env:PROGRAMDATA\NVIDIA Corporation\NvStream\NvStreamerCurrent.log" 
 
     # Initialize a hash table to store the client resolution values
     $clientRes = @{
@@ -76,16 +76,11 @@ function Get-ClientResolution() {
     }
 
     # Define combined regular expressions to match the height, width, and refresh rate values in the log file
-    $regex = [regex] "a=x-nv-video\[0\]\.(clientViewportWd:(?<wd>\d+)|clientViewportHt:(?<ht>\d+)|maxFPS:(?<hz>\d+))"
+    $regex = [regex] "video\[0\]\.(clientViewportWd:\s(?<wd>\d+)|clientViewportHt:\s(?<ht>\d+)|maxFPS:\s(?<hz>\d+))"
 
     $reader = New-Object ReverseFileReader -ArgumentList $log_path
 
     while ($null -ne ($line = $reader.ReadLine())) {
-        # Skip to the next line if the line doesn't start with "a=x"
-        # This is a performance optimization, this will match much faster than regular expressions.
-        if (-not $line.StartsWith("a=x")) {
-            continue;
-        }
 
         # Attempt to match the values in the line
         $match = $regex.Match($line)
@@ -152,7 +147,7 @@ function Join-Overrides($resolution) {
 
 
 function UserIsStreaming() {
-    return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
+    return $null -ne (Get-Process nvstreamer -ErrorAction SilentlyContinue)
 }
 
 
