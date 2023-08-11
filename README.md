@@ -22,7 +22,7 @@ This script changes your host resolution to match exactly with Moonlight's resol
 
 #### GFE Users
 - You'll need to use the Geforce Experience version of this script instead. 
-  - The current release for Geforce Experience users is: https://github.com/Nonary/ResolutionAutomation/releases/tag/2.0.14_gfe
+  - The current release for Geforce Experience users is: https://github.com/Nonary/ResolutionAutomation/releases/tag/2.0.15_gfe
 
 ### Installation Instructions
 1. Store the downloaded folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
