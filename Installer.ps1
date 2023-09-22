@@ -4,7 +4,7 @@
 ## Explain to me how to parse a conf file in PowerShell.
 
 ## AI EXPLAINS HOW... this is important as it invokes reflective thinking.
-## Having AI explain things to us first before asking 
+## Having AI explain things to us first before asking
 ## your question, significantly improves the quality of the response.
 
 
@@ -17,7 +17,7 @@
 ### I think I have found a mistake, can you double check your work?
 
 ## Again, this is important for reflective thinking, having the AI
-## check its work is important, as it may improve quality. 
+## check its work is important, as it may improve quality.
 
 ## Response: Did not find any errors.
 
@@ -54,6 +54,22 @@ if (-not $isAdmin) {
 $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
 $scriptRoot = Split-Path $scriptPath -Parent
 
+# Set config permissions to allow users to read the configuration file
+function Set-ConfigReadPermission {
+    # Get the current permissions on the configuration file
+    $acl = Get-Acl -Path $confPath
+
+    # if user already has read permission, do nothing
+    if ($acl.Access | Where-Object { $_.IdentityReference -like "Users" -and $_.FileSystemRights -like "Read" }) {
+        return
+    }
+
+    # Add a new permission to allow users to read the file
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("Users", "Read", "Allow")))
+
+    # Set the permissions on the configuration file
+    Set-Acl -Path $confPath -AclObject $acl
+}
 
 
 # Get the current value of global_prep_cmd from the configuration file
@@ -133,8 +149,6 @@ function Set-GlobalPrepCommand {
         }
     }
 
-
-
     # Write the modified config array back to the file
     $config | Set-Content -Path $confPath -Force
 }
@@ -162,13 +176,14 @@ if ($install -eq "True") {
     $commands = Add-ResolutionMatcherCommand
 }
 else {
-    $commands = Remove-ResolutionMatcherCommand 
+    $commands = Remove-ResolutionMatcherCommand
 }
+
+# Set config permissions to allow users to read
 
 Set-GlobalPrepCommand $commands
 
-$sunshineService = Get-Service -ErrorAction Ignore | Where-Object {$_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService'}
+$sunshineService = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService' }
 # In order for the commands to apply we have to restart the service
 $sunshineService | Restart-Service  -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
-
