@@ -179,7 +179,7 @@ else {
     $commands = Remove-ResolutionMatcherCommand
 }
 
-# Set config permissions to allow users to read
+Set-ConfigReadPermission
 
 Set-GlobalPrepCommand $commands
 
