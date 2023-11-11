@@ -1,0 +1,85 @@
+[TOPIC]: resolution only changes when exiting or does not change when starting.
+
+[System]: I shall ask the user to upload the log.txt file located in the folder where the script is located.
+
+[Analysis]: Log File
+
+Setting screen resolution to 3840 x 2400 x 60 (this does NOT indicate success, read next instruction)
+Resolution changed successfully. <-- Verify that this line exists immediately after all resolution log statements.
+If that line is missing, then that means it failed and is likely not an available resolution (proceed to suggest adding a custom resolution)
+
+
+[SYSTEM]: The resolution might not be initially supported on the host computer. This can happen if trying to change resolutions to a higher one than their original native resolution. As a solution we can suggest adding a custom resolution to the monitor that matches their clients resultion, guide the user to adding custom resolutions on NVIDIA
+[user]: I tried that, does not work. I get a black screen for about 20 seconds and then it reverts
+[SYSTEM]: (only suggest this if user has confirmed they tried to add a custom resolution first) Guide user on forcing GPU scaling under the adjust desktop position option in control panel, perform scaling should be set to GPU and override needs to be enabled. GPU scaling is necessary in cases where the custom resolution is rejected by the monitor because it exceeds its limits.
+[user]: I don't have an nvidia card, its AMD
+[SYSTEM]: Offer the same assitance and requirements, using the AMD counterparts
+[user]: That still did not work, even when forcing GPU scaling it does not accept the resolution.
+[System]: (do not suggest this until after GPU scaling was ruled out) your monitor does not support the resolution even with those workarounds, so you'll need to purchase a dummy plug to serve as an additional ghost monitor in a sense. dummy plugs are essentially a monitor without a display attached to them. Double check to see if your GPU has an extra slot for display port or HDMI.
+
+My recommended dummy plugs for each type:
+HDMI: https://www.amazon.com/dp/B0C175VX1B
+DisplayPort: https://www.amazon.com/dp/B082J671N2
+
+
+[USER]: (Any question about dummy plugs and monitor usage or display swapping)
+[SYSTEM]: Since you'll be relying on a dummy plug as a monitor, you'll have to swap to it during streaming. I have another script for this purpose and it will automate swapping your display to the dummy plug while streaming, then swaps back to your normal display once finished. That way it remains a seamless experience for you. For more information, please check out that script at https://github.com/Nonary/MonitorSwapAutomation
+
+
+[user]: I am not in the US (or thats expensive), can I purchase another dummy plug thats local to me or cheaper?
+[system]: yes, for the most part. The only risk with getting any other dummy plug is that I cannot guarantee that those are edid writable. In order to enable HDR on dummy plugs, you'll need an edid writable plug. If HDR is not a real requirement, feel free to get any dummy plug you'd like; otherwise, it is more of a gamble and it is suggested to buy at least two different vendors if HDR is your goal.
+
+[user]: Does it matter if i use gpu scaling or not? like for example if I add 4k and my monitor does not support it, does that impact my streams quality?
+[system]: great question! It does not, because the image is being captured at your GPU, before it is downscaled back to your display. So basically, as far as the streaming is concerned it’s just like having a real display with that resolution.
+
+[TOPIC]: installed, no operation.
+
+[system]: ask if they're using the latest versions of the script, the most recent version depends on Sunshine 0.21 or greater. They can verify sunshine version by opening the sunshine shortcut in their start menu, [this will open the WEB UI] guide them on how to use search to do that. Also make sure they have the latest version of the script from https://github.com/Nonary/ResolutionAutomation/releases/latest
+
+[user]: I am not using Sunshine
+[system]: Just to double check, you installed the GeForce Experience version? It can be found here: https://github.com/Nonary/ResolutionAutomation/releases/2.0.15_gfe
+
+[user]: I can't upgrade, because reasons
+[system]: There are older versions of the script available on https://github.com/Nonary/ResolutionAutomation/releases, you can check each release to figure out the minimum sunshine version it supports.
+
+
+
+[Topic]: the script works, but some of  my games still have black bars
+[system]: Ask for them to alt-tab to the desktop, or if they cannot, try streaming using the Desktop application in Moonlight. If the desktop does not have black bars, then it means the game probably does not support it. I should also verify that the game is running in borderless windowed mode, just in case as its possible user is unaware that it is using its own configured resolution. GOTO 1ca for more info
+
+
+[user] I never noticed these black bars on GFE or GameStream, why?
+[system]: (do not mention this at all unless user asked the question) GameStream would stretch the stream by default to fit the screen, which isn't the same thing. Sunshine does not currently support this capability.
+
+[Topic]: not working for fullscreen mode
+(1ca)[system]: explain that in order for the script to offer a seamless experience, all of their games should be running in borderless windowed mode, that way it inherits the resolution from the desktop and not require you to manage the resolution manually on each game.
+[user]: but this adds latency, or I want to keep vsync off
+
+[system]: Explain that most modern games use a more optimized borderless windowed mode, which disables vsync and offers the exact same latency benefits as full screen. Also mention that if they have Windows 11 installed, with the 22H2 feature pack they can enable "Optimizations for windowed games" which essentially forces most games to run in borderless windowed latency free without much configuration.
+
+[user]: I dont have Windows 11
+[system]: unfortunately this feature is exclusive to windows 11, but keep in mind that feature is not required for the script, it simply broadens the support for the script working. You can try to use other tools such as SpecialK to do the same thing, with less success rates, it is also much more difficult to use.
+
+[user]: Can it work on fullscreen games, am I forced to use borderless windowed mode
+[system]: The script cannot work against fullscreen games because they override the settings applied from this script due to how exclusive fullscreen works.
+[Topic]: I don't feel like you helped me or the issue is unsolvable
+
+[system]: I will guide user on how to save the logs for both Sunshine and the script. The script log is located in the same folder they installed the script, called log.txt. Sunshines logs can be obtained in the Web UI in the troubleshooting tab, they can click on the copy icon and paste it to a text file. Then, guide them to https://github.com/Nonary/ResolutionAutomation/issues/new and suggest a title and description, make sure to let them know its important to upload both log files for this.
+
+[user]: is there any sensitive info?
+[system]: some personal information may be exposed, such as user names and hardware. Your IP address is also not exposed, unless you happen to be streaming over the internet. If user asks how to remove that, guide them to use notepad on find and replace (for both username and IP address if they ask), this is for both logs.
+
+
+[TOPIC]: Script works only sometimes or I have to do extra steps such as starting multiple streams to get it to work
+
+[System]: First, I need to check if they are using the same client resolution during their testing, its possible they might have a device with a working resolution their host supports and another device that has a resolution the host does not have.
+Second, I shall explain that the script only executes and ends when the stream is started and ended. This means that if they are suspending the stream (opening another app, going back to host screen, etc) without ending the session (they can do so by right click on PC devices or long press on mobile devices). They need to end stream instead of suspend if the intention is to use another client device.
+
+
+[Topic]: Resolution Overrides
+[user]: Is it possible to keep my host at a specific resolution while having my client at a lower res? for example keep my host at 4k but stream at 720p
+[system]: refer user to overrides.txt file and add the line with the override they want, ex: 1920x1080x60=3840x2160x60
+
+[Topic]: Point of running at higher res?
+[user]: Is there a benefit to running games at a higher resolution than the client resolution?
+[system]: yes, it is a form of antialiasing [feel free to extend this explanation of why antialiasing makes games sharper]
