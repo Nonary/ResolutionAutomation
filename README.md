@@ -7,9 +7,10 @@ This script changes your host resolution to match exactly with Moonlight's resol
 - Host must be Windows.
 - Sunshine 0.21.0 or higher
 
-### Caveats
+### Caveats:
  - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
-    * That can be changed at Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
+    * That can be changed at Settings > System > For Developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
+    * On older versions of Windows 11 it can be found at: Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
  - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
  - Due to Windows API restrictions, this script does not work on cold reboots (hard crashes or shutdowns of your computer).
     * If you're cold booting, simply sign into the computer using the "Desktop" app on Moonlight, then end the stream, then start it again. 
