@@ -55,9 +55,8 @@ function Assert-ResolutionChange($width, $height, $refresh) {
         if (($width -ne $hostResolution.Width) -or ($height -ne $hostResolution.Height) -or ($refreshDiff -ge 2)) {
             # If the resolutions don't match, set the screen resolution to the current client's resolution
             Write-Host "Current Resolution: $($hostResolution.Width) x $($hostResolution.Height) x $($hostResolution.Refresh)"
-            Write-Host "Expected Requested Resolution: $width x $height x $refrsh"
+            Write-Host "Expected Requested Resolution: $width x $height x $refresh"
             Set-ScreenResolution $width $height $refresh
-            break
         }
         # Wait for a while before checking the resolution again
         Start-Sleep -Milliseconds 500
