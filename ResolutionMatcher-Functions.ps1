@@ -66,32 +66,34 @@ function Assert-ResolutionChange($width, $height, $refresh) {
 
 function Join-Overrides($width, $height, $refresh) {
     $overrides = Get-Content ".\overrides.txt" -ErrorAction SilentlyContinue
-
+    Write-Host "Overrides loaded: $overrides"
     foreach ($line in $overrides) {
-        $overrides = $line | Select-String "(?<width>\d{1,})x(?<height>\d*)x?(?<refresh>\d*)?" -AllMatches
+        if ($null -ne $line -and "" -ne $line) {
+            $overrides = $line | Select-String "(?<width>\d{1,})x(?<height>\d*)x?(?<refresh>\d*)?" -AllMatches
+    
+            $heights = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'height' }
+            $widths = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'width' }
+            $refreshes = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'refresh' }
 
-        $heights = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'height' }
-        $widths = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'width' }
-        $refreshes = $overrides[0].Matches.Groups | Where-Object { $_.Name -eq 'refresh' }
-
-        if ($widths[0].Value -eq $width -and $heights[0].Value -eq $height -and $refreshes[0].Value -eq $refresh) {
-            $width = $widths[1].Value
-            $height = $heights[1].Value
-            $refresh = $refreshes[1].Value
-            break
+            if ($widths[0].Value -eq $width -and $heights[0].Value -eq $height -and $refreshes[0].Value -eq $refresh) {
+                $width = $widths[1].Value
+                $height = $heights[1].Value
+                $refresh = $refreshes[1].Value
+                break
+            }
         }
-    }
-
-    return @{
-        height  = $height
-        width   = $width
-        refresh = $refresh
+    
+        return @{
+            height  = $height
+            width   = $width
+            refresh = $refresh
+        }
     }
 }
 
 
 
-function UserIsStreaming() {
+function IsCurrentlyStreaming() {
     return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
 }
 
