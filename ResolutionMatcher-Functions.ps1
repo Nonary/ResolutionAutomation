@@ -26,7 +26,7 @@ Function Set-ScreenResolution($width, $height, $frequency) {
                 Write-Host "Resolution changed successfully."
             }
             else {
-                throw "Failed to change resolution. Error code: $result"
+                Write-Host "Failed to change resolution. Error code: $result"
             }
             break
         }
@@ -41,10 +41,25 @@ function Get-HostResolution {
 
     while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
         return @{
-            CurrentHorizontalResolution = $devMode.dmPelsWidth
-            CurrentVerticalResolution   = $devMode.dmPelsHeight
-            CurrentRefreshRate          = $devMode.dmDisplayFrequency
+            Width   = $devMode.dmPelsWidth
+            Height  = $devMode.dmPelsHeight
+            Refresh = $devMode.dmDisplayFrequency
         }
+    }
+}
+function Assert-ResolutionChange($width, $height, $refresh) {
+    # Attempt to set the resolution up to 6 times, in event of failures
+    for ($i = 0; $i -lt 12; $i++) {
+        $hostResolution = Get-HostResolution
+        $refreshDiff = [Math]::Abs($hostResolution.Refresh - $refresh)
+        if (($width -ne $hostResolution.Width) -or ($height -ne $hostResolution.Height) -or ($refreshDiff -ge 2)) {
+            # If the resolutions don't match, set the screen resolution to the current client's resolution
+            Write-Host "Current Resolution: $($hostResolution.Width) x $($hostResolution.Height) x $($hostResolution.Refresh)"
+            Write-Host "Expected Requested Resolution: $width x $height x $refresh"
+            Set-ScreenResolution $width $height $refresh
+        }
+        # Wait for a while before checking the resolution again
+        Start-Sleep -Milliseconds 500
     }
 }
 
@@ -106,18 +121,19 @@ function Stop-ResolutionMatcherScript() {
 function OnStreamStart($width, $height, $refresh) {
     $expectedRes = Join-Overrides -width $width -height $height -refresh $refresh
     Set-ScreenResolution -Width $expectedRes.Width -Height $expectedRes.Height -Freq $expectedRes.Refresh
+    Assert-ResolutionChange -width $expectedRes.Width -height $expectedRes.Height -refresh $expectedRes.Refresh
 }
 
 function OnStreamEnd($hostResolution) {
 
     if (($host_resolution_override.Values | Measure-Object -Sum).Sum -gt 1000) {
         $hostResolution = @{
-            CurrentHorizontalResolution = $host_resolution_override['Width']
-            CurrentVerticalResolution   = $host_resolution_override['Height']
-            CurrentRefreshRate          = $host_resolution_override['Refresh']
+            Width   = $host_resolution_override['Width']
+            Height  = $host_resolution_override['Height']
+            Refresh = $host_resolution_override['Refresh']
         }
     }
-    Set-ScreenResolution -Width $hostResolution.CurrentHorizontalResolution -Height $hostResolution.CurrentVerticalResolution -Freq $hostResolution.CurrentRefreshRate   
+    Set-ScreenResolution -Width $hostResolution.Width -Height $hostResolution.Height -Freq $hostResolution.Refresh   
 }
 
     
