@@ -1,5 +1,7 @@
 param($async)
-
+$path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
+Set-Location $path
+$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
@@ -7,11 +9,11 @@ if ($null -eq $async) {
     exit
 }
 
-Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+Start-Transcript -Path .\log.txt
 . .\ResolutionMatcher-Functions.ps1
 $hostResolutions = Get-HostResolution
 $lock = $false
-Start-Transcript -Path .\log.txt
+
 
 
 $mutexName = "ResolutionMatcher"
@@ -27,28 +29,32 @@ try {
     
     # Asynchronously start the ResolutionMatcher, so we can use a named pipe to terminate it.
     Start-Job -Name ResolutionMatcherJob -ScriptBlock {
-        . .\ResolutionMatcher-Functions.ps1
+        param($path, $revertDelay)
+        . $path\ResolutionMatcher-Functions.ps1
         $lastStreamed = Get-Date
 
 
         Register-EngineEvent -SourceIdentifier ResolutionMatcher -Forward
         New-Event -SourceIdentifier ResolutionMatcher -MessageData "Start"
         while ($true) {
-            if ((IsCurrentlyStreaming)) {
-                $lastStreamed = Get-Date
-            }
-            else {
-                if (((Get-Date) - $lastStreamed).TotalSeconds -gt 120) {
-                    Write-Output "Ending the stream script"
-                    New-Event -SourceIdentifier ResolutionMatcher -MessageData "End"
-                    break;
+            try {
+                if ((IsCurrentlyStreaming)) {
+                    $lastStreamed = Get-Date
                 }
-    
+                else {
+                    if (((Get-Date) - $lastStreamed).TotalSeconds -gt $revertDelay) {
+                        New-Event -SourceIdentifier ResolutionMatcher -MessageData "End"
+                        break;
+                    }
+        
+                }
             }
-            Start-Sleep -Seconds 1
+            finally {
+                Start-Sleep -Seconds 1
+            }
         }
     
-    }
+    } -ArgumentList $path, $settings.revertDelay
 
 
     # To allow other powershell scripts to communicate to this one.
@@ -88,15 +94,14 @@ try {
                 OnStreamEnd $hostResolutions
                 break;
             }
-            Remove-Event -SourceIdentifier ResolutionMatcher
+            Remove-Event -EventIdentifier $eventFired.EventIdentifier
         }
         elseif ($pipeJob.State -eq "Completed") {
             Write-Host "Request to terminate has been processed, script will now revert resolution."
             OnStreamEnd $hostResolutions
-            Remove-Job $pipeJob
             break;
         }
-        elseif ($eventMessageCount -gt 59) {
+        elseif($eventMessageCount -gt 59) {
             Write-Host "Still waiting for the next event to fire..."
             $eventMessageCount = 0
         }
