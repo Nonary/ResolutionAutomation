@@ -65,6 +65,7 @@ function Assert-ResolutionChange($width, $height, $refresh) {
 
 
 function Join-Overrides($width, $height, $refresh) {
+    Write-Host "Before Override: $width x $height x $refresh"
     $overrides = Get-Content ".\overrides.txt" -ErrorAction SilentlyContinue
     foreach ($line in $overrides) {
         if ($null -ne $line -and "" -ne $line) {
@@ -82,11 +83,13 @@ function Join-Overrides($width, $height, $refresh) {
             }
         }
     
-        return @{
-            height  = $height
-            width   = $width
-            refresh = $refresh
-        }
+    }
+
+    Write-Host "After Override: $width x $height x $refresh"
+    return @{
+        height  = $height
+        width   = $width
+        refresh = $refresh
     }
 }
 
