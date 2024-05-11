@@ -1,8 +1,15 @@
-param($install)
+param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [Alias("n")]
+    [string]$scriptName,
+
+    [Parameter(Position = 1, Mandatory = $true)]
+    [Alias("i")]
+    [string]$install
+)
 $filePath = $($MyInvocation.MyCommand.Path)
 $scriptRoot = Split-Path $filePath -Parent
 $scriptPath = "$scriptRoot\StreamMonitor.ps1"
-
 
 # This script modifies the global_prep_cmd setting in the Sunshine configuration file
 
@@ -17,7 +24,7 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().Grou
 
 # If the user is not an administrator and UAC is enabled, re-launch the script with elevated privileges
 if (-not $isAdmin -and (Test-UACEnabled)) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$filePath`" $install"
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$filePath`" -n `"$scriptName`" -i `"$install`""
     exit
 }
 
@@ -97,7 +104,7 @@ function Remove-Command {
 
     # Remove any existing matching Commands
     for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
-        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptRoot*")) {
+        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptName*")) {
             $filteredCommands += $globalPrepCmdArray[$i]
         }
     }
@@ -155,9 +162,9 @@ function Add-Command {
     $globalPrepCmdArray = Remove-Command -ConfigPath $confPath
 
     $command = [PSCustomObject]@{
-        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`""
+        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`" -n $scriptName"
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" $true"
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" -n $scriptName -t 1"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -166,7 +173,7 @@ function Add-Command {
     return [object[]]$globalPrepCmdArray
 }
 $commands = @()
-if ($install -eq "True") {
+if ($install -eq 1) {
     $commands = Add-Command
 }
 else {

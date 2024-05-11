@@ -1,11 +1,17 @@
 # Determine the path of the currently running script and set the working directory to that path
+param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [Alias("n")]
+    [string]$scriptName
+)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
-$scriptName = Split-Path $path -Leaf
 Set-Location $path
-. .\Helpers.ps1
+. .\Helpers.ps1 -n $scriptName
 Add-Type -Path .\internals\DisplaySettings.cs
+
 # Load settings from a JSON file located in the same directory as the script
 $settings = Get-Settings
+
 # Initialize a script scoped dictionary to store variables.
 # This dictionary is used to pass parameters to functions that might not have direct access to script scope, like background jobs.
 if (-not $script:arguments) {
