@@ -5,8 +5,8 @@ param(
     [string]$scriptName,
 
     [Parameter(Position = 1)]
-    [Alias("a")]
-    [bool]$async
+    [Alias("sib")]
+    [bool]$startInBackground
 )
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
@@ -15,12 +15,13 @@ Set-Location $path
 $settings = Get-Settings
 $DebugPreference = if ($settings.debug) { "Continue" } else { "SilentlyContinue" }
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
-if ($null -eq $async) {
-    Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
+if ($startInBackground -eq $false) {
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+    $arguments = "-ExecutionPolicy Bypass -Command `"& '$scriptPath\StreamMonitor.ps1' -scriptName $scriptName -sib 1`""
+    Start-Process powershell.exe -ArgumentList $arguments -WindowStyle Hidden
     Start-Sleep -Seconds $settings.startDelay
     exit
 }
-
 
 
 Remove-OldLogs

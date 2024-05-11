@@ -1,90 +1,52 @@
-# Sunshine Script Installer Template
+## Host Resolution Matching for Moonlight Streaming
 
-This repository is designed to be used as a template for creating similar projects. It allows you to maintain an up-to-date version of the template while also customizing and adding your own content.
+This script changes your host resolution to match exactly with Moonlight's resolution. This is mostly used for users who have different aspect ratios between the client and host, or anyone who wishes to match the resolution while streaming.
 
-## Using This Repository as a Template
+### Requirements
 
-To use this repository as a template for your own project, follow these steps:
+- Host must be Windows.
+- Sunshine 0.21.0 or higher
 
-1. **Create a New Repository from the Template**
-   - Navigate to the main page of this repository.
-   - Above the file list, click the **Use this template** button.
-   - Follow the prompts to create a new repository from this template.
+### Caveats:
+ - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
+    * That can be changed at Settings > System > For Developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
+    * On older versions of Windows 11 it can be found at: Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
+ - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
+ - Due to Windows API restrictions, this script does not work on cold reboots (hard crashes or shutdowns of your computer).
+    * If you're cold booting, simply sign into the computer using the "Desktop" app on Moonlight, then end the stream, then start it again. 
 
-## Setting Up the Upstream Repository
+#### GFE Users
+- You'll need to use the Geforce Experience version of this script instead. 
+  - The current release for Geforce Experience users is: https://github.com/Nonary/ResolutionAutomation/releases/tag/2.0.15_gfe
 
-Once you have created your project from this template, you should set up this repository as an upstream to easily pull the latest changes:
+### Installation Instructions
+1. Store the downloaded folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
+2. To install, double click the Install.bat file.
+3. To uninstall, double click the Uninstall.bat file.
 
-1. **Add the Upstream Repository**
-   - Open your terminal.
-   - Change the current working directory to your local project.
-   - Run the following command to add this repository as an upstream:
-     ```
-     git remote add upstream https://github.com/Nonary/SunshineScriptInstaller.git
-     ```
+This script will ask for elevated rights because Sunshine configuration is be locked from modifications for non-administrator users.
 
-2. **Verify the Upstream Repository**
-   - To ensure the upstream repository was added correctly, you can run:
-     ```
-     git remote -v
-     ```
-   - You should see the URL for your fork as `origin`, and the URL for the original repository as `upstream`.
+### How it Works
+1. When you start streaming any application in Sunshine, it will start the script.
+2. The script reads the environment variables passed to it via Sunshine, which contains client information such as screen resolution.
+3. It sets the host's resolution to match the Moonlight resolution (including refresh rate), unless overridden with the `overrides` file.
+4. The script waits for Sunshine to be suspended for more than 120 seconds or until the user ends the stream.
+5. It sets the host resolution back to the same resolution it was prior to starting the stream (including refresh rate).
 
-## Syncing with the Upstream Repository
+This will only work if the resolution is available to be used, so you will need to make sure to use NVIDIA Custom Resolution or CRU to add the client resolution first.
 
-To keep your repository up-to-date with the changes made in the template, you can merge changes from the upstream repository into your project:
+### Overrides File
+You may have a mobile device that you wish to stream at a lower resolution to save bandwidth or some devices may perform better when streaming at a lower resolution. If you want your host to change the resolution to something higher than the client, use the `overrides` file to do this.
 
-1. **Fetch the Latest Changes from Upstream**
-   - Run the following command to fetch the branches and their respective commits from the upstream repository:
-     ```
-     git fetch upstream
-     ```
+#### Format
+```
+WidthxHeightxRefresh=WidthxHeightxRefresh
+```
 
-2. **Merge the Changes from Upstream/Main into Your Branch**
-   - Ensure you are on your main branch by running:
-     ```
-     git checkout main
-     ```
-   - Merge the changes from the upstream main branch:
-     ```
-     git merge upstream/main --squash --no-commit --allow-unrelated-histories
-     ```
-   - If there are no conflicts, this will update your branch with the latest changes.
+The resolution on the left is what triggers the override, and the one on the right is what the host will be set to.
 
-3. **Push the Merged Changes**
-   - After merging, push the changes to your GitHub repository:
-     ```
-     git push origin main
-     ```
-
-
-### Customizing the Script
-
-### Steps to Customize
-1. Add your custom functions to the `Events.ps1` file.
-2. Implement your desired actions in the `OnStreamStart` and `OnStreamEnd` functions.
-3. Update the `-n` parameter in `Install.bat` and `Uninstall.bat` to match the name of your script.
-
-### Understanding Event Handlers
-
-The `Events.ps1` file includes predefined PowerShell functions that act as event handlers for specific streaming events in the Sunshine application. You can tailor your streaming setup by adding your own code to these functions:
-
-- **OnStreamStart**: This function is activated when your stream starts. You can add initialization code here, such as setting up your environment, logging the start time, or enabling certain features in your stream setup.
-
-- **OnStreamEnd**: This function is invoked when your stream ends. It's an ideal location for cleanup code, like deallocating resources, logging the end of the session, or sending post-stream notifications.
-
-> **Note**: Don't forget to update the script name in both `Install.bat` and `Uninstall.bat`. If not updated, it will default to `SunshineScriptInstaller`.
-
-### Regularly Updating Your Repository
-
-To ensure that your project remains up-to-date with the latest features and bug fixes, it's recommended to regularly sync with the upstream repository. This involves pulling the latest changes from the original source and merging them into your local repository. Staying updated can help you avoid conflicts and benefit from the latest improvements made by other contributors.
-
-### Engaging with the Community
-
-If you find the Sunshine project beneficial, consider starring the repository on GitHub. This not only shows appreciation to the maintainers but also helps increase the visibility of the project, attracting more contributors and users.
-
-- **Star the Repository**: Visit the main page of the Sunshine GitHub repository and click on the 'Star' button to bookmark it. This is a simple way to acknowledge the work of the developers and maintainers.
-
-- **Follow Maintenance Updates**: Keep an eye on the repository for ongoing updates and changes. Regular visits can keep you informed about new features and important fixes.
-
-- **Contribute to the Template**: If you have ideas on how to improve the project or if you've developed enhancements that could benefit others, consider contributing your changes back to the repository. 
+#### Example
+To stream at 720p and keep the host at 4k resolution, you would add this line:
+```
+1280x700x60=3840x2160x60
+```

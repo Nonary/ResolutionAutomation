@@ -45,5 +45,16 @@
         // It is only recommended to turn this setting on if you have a dummy plug and would like to have 10-bit color depth while gaming.
         "enabled": false,
         "refreshRate": 30
+    },
+    "installationOrderPreferences": {
+        "enabled": true,
+        // Set the order which the scripts are installed in, if the scripts are currently out of order, they will be reinstalled in the order specified here.
+        "scriptNames": [
+            "MonitorSwapper",
+            "ResolutionMatcher",
+            "AutoHDR",
+            "RTSSLimiter",
+            "PlayNiteWatcher"
+        ]
     }
 }

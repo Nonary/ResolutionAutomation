@@ -4,7 +4,7 @@ param(
     [string]$scriptName,
     [Alias("t")]
     [Parameter(Position=1, Mandatory=$false)]
-    [bool]$terminate
+    [int]$terminate
 )
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
@@ -183,7 +183,7 @@ function Get-Settings {
 
 
 
-if ($terminate) {
+if ($terminate -eq 1) {
     Write-Host "Stopping Script"
     Stop-Script | Out-Null
 }
