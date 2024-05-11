@@ -1,0 +1,49 @@
+{
+    // Enables or disables the debug log statements, which can be useful for troubleshooting issues.
+    "debug": false,
+    "gracePeriod": 180,
+    "startDelay": 1,
+    // This setting allows you to specify a preferred screen resolution that your application will always revert to when not overridden by other settings. 
+    // The 'width' and 'height' fields specify the dimensions of the preferred resolution, and the 'refresh' field specifies the refresh rate.
+    // Set 'enabled' to true if you wish to enable this feature. If 'enabled' is set to false, the application will ignore these values and use the default or previously set resolution.
+    "preferredResolution": {
+        "width": 1920,
+        "height": 1080,
+        "refresh": 60,
+        "enabled": false
+    },
+    "overrides": [
+        {
+            // The 'client' object specifies the resolution and refresh rate that the client will use.
+            // The 'host' object specifies the resolution and refresh rate that the host will use.
+            // This setting allows you to change the resolution of the host to something other than the client.
+            // This is useful for supersampling video games, where rendering the game at a higher resolution on the host can result in a sharper image on the client.
+            // For example, Steam Deck clients have a much sharper image when streaming at 2560x1600 at 90Hz, while the host is set for 3840x2400 at 60Hz.
+            // Additionally, this setting can be used to stream at a high frame rate that exceeds your display's maximum frame rate.
+            // This can be achieved by configuring the host to change to a lower refresh rate, and then disabling VSYNC and using a frame limiter such as RTSS (RivaTuner Statistics Server).
+            "client": {
+                "width": 3840,
+                "height": 2160,
+                "refresh": 120
+            },
+            "host": {
+                "width": 3840,
+                "height": 2160,
+                "refresh": 60
+            }
+        },
+        // Recommended for Steam Deck Users, Uncomment to enable!
+        // {
+        //     "client": {"width": 2560, "height": 1600, "refresh": 90},
+        //     "host": {"width": 3840, "height": 2400, "refresh": 60}
+        // }
+    ],
+    "force10BitDepthOnUnsupportedDevices": {
+        // This setting attempts to enable 10-bit depth support on devices that can't support it natively, by halving the refresh rate.
+        // Please note that this is only factored when HDR (High Dynamic Range) is enabled and the you are currently streaming with HDR enabled in Moonlight.
+        // Be aware that this setting will typically lock the desktop at 30fps, but games that allow you to turn off VSYNC will not be impacted.
+        // It is only recommended to turn this setting on if you have a dummy plug and would like to have 10-bit color depth while gaming.
+        "enabled": false,
+        "refreshRate": 30
+    }
+}
