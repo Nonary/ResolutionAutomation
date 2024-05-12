@@ -107,7 +107,7 @@ function Remove-Command {
 
     # Remove any existing matching Commands
     for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
-        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptRoot*")) {
+        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptName*")) {
             $filteredCommands += $globalPrepCmdArray[$i]
         }
     }
