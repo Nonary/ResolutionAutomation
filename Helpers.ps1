@@ -1,117 +1,114 @@
 param(
-    [Parameter(Position=0, Mandatory=$true)]
+    [Parameter(Position = 0, Mandatory = $true)]
     [Alias("n")]
     [string]$scriptName,
     [Alias("t")]
-    [Parameter(Position=1, Mandatory=$false)]
+    [Parameter(Position = 1, Mandatory = $false)]
     [int]$terminate
 )
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
 $script:attempt = 0
-
 function OnStreamEndAsJob() {
-
     return Start-Job -Name "$scriptName-OnStreamEnd" -ScriptBlock {
         param($path, $scriptName, $arguments)
+        
+        Write-Debug "Setting location to $path"
         Set-Location $path
+        Write-Debug "Loading Helpers.ps1 with script name $scriptName"
         . .\Helpers.ps1 -n $scriptName
+        Write-Debug "Loading Events.ps1 with script name $scriptName"
         . .\Events.ps1 -n $scriptName
-    
+        
         Write-Host "Stream has ended, now invoking code"
+        Write-Debug "Creating pipe with name $scriptName-OnStreamEnd"
         $job = Create-Pipe -pipeName "$scriptName-OnStreamEnd" 
 
         while ($true) {
             $maxTries = 25
             $tries = 0
-        
+
+            Write-Debug "Checking job state: $($job.State)"
             if ($job.State -eq "Completed") {
                 Write-Host "Another instance of $scriptName has been started again. This current session is now redundant and will terminate without further action."
+                Write-Debug "Job state is 'Completed'. Exiting loop."
                 break;
             }
-        
-            if ((IsCurrentlyStreaming)) {
-                Write-Host "Streaming is active. To prevent potential conflicts, this script will now terminate prematurely."
-            }
-        
+
+            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
             if ((OnStreamEnd $arguments)) {
+                Write-Debug "OnStreamEnd returned true. Exiting loop."
                 break;
             }
-        
+
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
                 Start-Sleep -Milliseconds 200
                 $tries++
             }
-        
         }
-        # Allow job to complete by terminating the pipe, this line wouldn't be reached unless the OnStreamEnd was successful.
+
+        Write-Debug "Sending 'Terminate' message to pipe $scriptName-OnStreamEnd"
         Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
     } -ArgumentList $path, $scriptName, $script:arguments
 }
 
 
-function IsSunshineUser() {
-    return $null -ne (Get-Process sunshine -ErrorAction SilentlyContinue)
-}
-
 function IsCurrentlyStreaming() {
-    if (IsSunshineUser) {
-        return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
-    }
-
-    return $null -ne (Get-Process nvstreamer -ErrorAction SilentlyContinue)
+    return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
 }
 
 function Stop-Script() {
     Send-PipeMessage -pipeName $scriptName Terminate
 }
-
-
 function Send-PipeMessage($pipeName, $message) {
-    $pipeExists = Get-ChildItem -Path "\\.\pipe\" | Where-Object { $_.Name -eq $pipeName } 
+    Write-Debug "Attempting to send message to pipe: $pipeName"
+
+    $pipeExists = Get-ChildItem -Path "\\.\pipe\" | Where-Object { $_.Name -eq $pipeName }
+    Write-Debug "Pipe exists check: $($pipeExists.Length -gt 0)"
+    
     if ($pipeExists.Length -gt 0) {
         $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipeName, [System.IO.Pipes.PipeDirection]::Out)
-        $pipe.Connect(3)
+        Write-Debug "Connecting to pipe: $pipeName"
+        
+        $pipe.Connect(3000)
         $streamWriter = New-Object System.IO.StreamWriter($pipe)
+        Write-Debug "Sending message: $message"
+        
         $streamWriter.WriteLine($message)
         try {
             $streamWriter.Flush()
             $streamWriter.Dispose()
             $pipe.Dispose()
+            Write-Debug "Message sent and resources disposed successfully."
         }
         catch {
+            Write-Debug "Error during disposal: $_"
             # We don't care if the disposal fails, this is common with async pipes.
             # Also, this powershell script will terminate anyway.
         }
+    } else {
+        Write-Debug "Pipe not found: $pipeName"
     }
 }
+
 
 function Create-Pipe($pipeName) {
     return Start-Job -Name "$pipeName-PipeJob" -ScriptBlock {
         param($pipeName, $scriptName) 
         Register-EngineEvent -SourceIdentifier $scriptName -Forward
         
-        for ($i = 0; $i -lt 10; $i++) {
-            # We could be pending a previous termination, so lets wait up to 10 seconds.
-            if (-not (Test-Path "\\.\pipe\$pipeName")) {
-                break
-            }
-            
-            Start-Sleep -Seconds 1
-        }
-        Remove-Item "\\.\pipe\$pipeName" -ErrorAction Ignore
-        $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
+        $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 10, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
         $streamReader = New-Object System.IO.StreamReader($pipe)
         Write-Output "Waiting for named pipe to recieve kill command"
         $pipe.WaitForConnection()
 
         $message = $streamReader.ReadLine()
-        if ($message -eq "Terminate") {
+        if ($message) {
             Write-Output "Terminating pipe..."
             $pipe.Dispose()
             $streamReader.Dispose()
-            New-Event -SourceIdentifier $scriptName -MessageData "$pipeName-Terminated"
+            New-Event -SourceIdentifier $scriptName -MessageData $message
         }
     } -ArgumentList $pipeName, $scriptName
 }
@@ -138,7 +135,7 @@ function Remove-OldLogs {
 
 function Start-Logging {
     # Get the current timestamp
-    $timeStamp = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
+    $timeStamp = [int][double]::Parse((Get-Date -UFormat "%s"))
     $logDirectory = "./logs"
 
     # Define the path and filename for the log file
@@ -153,6 +150,8 @@ function Start-Logging {
     # Start logging to the log file
     Start-Transcript -Path $logFilePath
 }
+
+
 
 function Stop-Logging {
     Stop-Transcript
@@ -176,11 +175,20 @@ function Get-Settings {
         # Convert JSON content to PowerShell object
         $jsonObject = $jsonContent | ConvertFrom-Json
         return $jsonObject
-    } catch {
+    }
+    catch {
         Write-Error "Failed to parse JSON: $_"
     }
 }
 
+function Wait-ForStreamEndJobToComplete() {
+    $job = OnStreamEndAsJob
+    while ($job.State -ne "Completed") {
+        $job | Receive-Job
+        Start-Sleep -Seconds 1
+    }
+    $job | Wait-Job | Receive-Job
+}
 
 
 if ($terminate -eq 1) {

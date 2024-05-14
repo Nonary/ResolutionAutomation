@@ -161,34 +161,39 @@ function Set-GlobalPrepCommand {
 function OrderCommands($commands, $scriptNames) {
     $orderedCommands = New-Object System.Collections.ArrayList
 
+    if($commands -isnot [System.Collections.IEnumerable]) {
+        # PowerShell likes to magically change types on you, so we have to check for this
+        $commands = @(, $commands)
+    }
+
     $orderedCommands.AddRange($commands)
 
     for ($i = 1; $i -lt $scriptNames.Count; $i++) {
-        if($i -1 -lt 0) {
+        if ($i - 1 -lt 0) {
             continue
         }
 
         $before = $scriptNames[$i - 1]
         $after = $scriptNames[$i]
 
-        $afterCommand = $orderedCommands | Where-Object { $_.do -like "*$after*" } | Select-Object -First 1
+        $afterCommand = $orderedCommands | Where-Object { $_.do -like "*$after*" -or $_.undo -like "*$after*" } | Select-Object -First 1
 
         $beforeIndex = $null
         for ($j = 0; $j -lt $orderedCommands.Count; $j++) {
-            if ($orderedCommands[$j].do -like "*$before*") {
+            if ($orderedCommands[$j].do -like "*$before*" -or $orderedCommands[$j].undo -like "*$before*") {
                 $beforeIndex = $j
                 break
             }
         }
         $afterIndex = $null
         for ($j = 0; $j -lt $orderedCommands.Count; $j++) {
-            if ($orderedCommands[$j].do -like "*$after*") {
+            if ($orderedCommands[$j].do -like "*$after*" -or $orderedCommands[$j].undo -like "*$after*") {
                 $afterIndex = $j
                 break
             }
         }
 
-        if($null -ne $afterIndex -and ($afterIndex -lt $beforeIndex)) {
+        if ($null -ne $afterIndex -and ($afterIndex -lt $beforeIndex)) {
             $orderedCommands.RemoveAt($afterIndex)
             $orderedCommands.Insert($beforeIndex, $afterCommand)
 

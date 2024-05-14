@@ -37,6 +37,16 @@ if (-not $mutex.WaitOne(0)) {
     Write-Host "Exiting: Another instance of the script is currently running."
     exit
 }
+
+if (-not $mutex) {
+    ### If you don't use a mutex, you can optionally fan the hammer
+    for ($i = 0; $i -lt 6; $i++) {
+        Send-PipeMessage $scriptName NewSession
+        Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
+    }
+}
+
+
 # END OF OPTIONAL MUTEX HANDLING
 
 
@@ -85,13 +95,17 @@ try {
             if ($eventName -eq "Start") {
                 OnStreamStart
             }
+            elseif ($eventName -eq "NewSession") {
+                Write-Host "A new session of this script has been started. To avoid conflicts, this session will now terminate. This is a normal process and not an error."
+                break;
+            }
+            elseif ($eventName -eq "GracePeriodExpired") {
+                Write-Host "Stream has been suspended beyond the defined grace period. We will now treat this as if you ended the stream. If this was unintentional or if you wish to extend the grace period, please adjust the grace period timeout in the settings.json file."
+                Wait-ForStreamEndJobToComplete
+                break;
+            }
             else {
-                $job = OnStreamEndAsJob
-                while ($job.State -ne "Completed") {
-                    $job | Receive-Job
-                    Start-Sleep -Seconds 1
-                }
-                $job | Wait-Job | Receive-Job
+                Wait-ForStreamEndJobToComplete
                 break;
             }
             Remove-Event -EventIdentifier $eventFired.EventIdentifier
