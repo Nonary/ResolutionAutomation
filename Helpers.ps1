@@ -54,7 +54,12 @@ function OnStreamEndAsJob() {
 
 
 function IsCurrentlyStreaming() {
-    return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
+    $sunshineProcess = Get-Process sunshine -ErrorAction SilentlyContinue
+
+    if($null -eq $sunshineProcess) {
+        return $false
+    }
+    return $null -ne (Get-NetUDPEndpoint -OwningProcess $sunshineProcess.Id -ErrorAction Ignore)
 }
 
 function Stop-Script() {
