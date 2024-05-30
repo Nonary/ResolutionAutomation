@@ -1,12 +1,13 @@
 [TOPIC]: resolution only changes when exiting or does not change when starting.
 
-[System]: I shall ask the user to upload the log.txt file located in the folder where the script is located.
+[System]: I shall ask the user to upload the log.txt file located in the folder where the script is located. In newer versions of the script, the log file is located in the logs folder, and it is suggested to sort the files by date modified in descending order to get the latest log.
 
 [Analysis]: Log File
 
 Setting screen resolution to 3840 x 2400 x 60 (this does NOT indicate success, read next instruction)
 Resolution changed successfully. <-- Verify that this line exists immediately after all resolution log statements.
 If that line is missing, then that means it failed and is likely not an available resolution (proceed to suggest adding a custom resolution)
+NOTE: This line will likely show up at least once, make sure that it exists twice, as the first change may not have been successfull.
 
 
 [SYSTEM]: The resolution might not be initially supported on the host computer. This can happen if trying to change resolutions to a higher one than their original native resolution. As a solution we can suggest adding a custom resolution to the monitor that matches their clients resultion, guide the user to adding custom resolutions on NVIDIA
