@@ -48,5 +48,5 @@ The resolution on the left is what triggers the override, and the one on the rig
 #### Example
 To stream at 720p and keep the host at 4k resolution, you would add this line:
 ```
-1280x700x60=3840x2160x60
+1280x720x60=3840x2160x60
 ```
