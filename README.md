@@ -8,6 +8,7 @@ This script changes your host resolution to match exactly with Moonlight's resol
 - Sunshine 0.21.0 or higher
 
 ### Caveats:
+ - This script does not work on Windows 11 24H2 due to compatbiltiy issues. Microsoft has stopped the deployment of 24H2 due to many issues, but users who upgraded will need to downgrade or wait for a fix from Microsoft.
  - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
     * That can be changed at Settings > System > For Developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
     * On older versions of Windows 11 it can be found at: Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
@@ -50,3 +51,5 @@ To stream at 720p and keep the host at 4k resolution, you would add this line:
 ```
 1280x700x60=3840x2160x60
 ```
+### Troubleshooting
+ChatGPT users (including free accounts) can troubleshoot and resolve most common issues with this script by talking to the AI through this link: https://chat.openai.com/g/g-2mF6ae5iI-resolution-matcher-support
