@@ -129,30 +129,110 @@ function Assert-ResolutionChange($width, $height, $refresh) {
 }
 
 
-function Join-Overrides($width, $height, $refresh) {
-    Write-Debug "Function Join-Overrides called with Width: $width, Height: $height, Refresh: $refresh"
+function Join-Overrides {
+    param (
+        [int]$Width,
+        [int]$Height,
+        [int]$Refresh
+    )
 
-    Write-Host "Before Overriding: $width x $height x $refresh"
+    Write-Debug "Function Join-Overrides called with Width: $Width, Height: $Height, Refresh: $Refresh"
+
+    Write-Host "Before Overriding: $Width x $Height x $Refresh"
+
+    # Initialize variables to hold the best matching override
+    $matchedOverride = $null
+    $matchedSpecificity = -1  # Higher value means more specific
 
     foreach ($override in $settings.overrides) {
-        Write-Debug "Checking override with client width: $($override.client.width), height: $($override.client.height), refresh: $($override.client.refresh)"
-        if ($override.client.width -eq $width -and $override.client.height -eq $height -and $override.client.refresh -eq $refresh) {
-            Write-Debug "Match found. Overriding with host width: $($override.host.width), height: $($override.host.height), refresh: $($override.host.refresh)"
-            $width = $override.host.width
-            $height = $override.host.height
-            $refresh = $override.host.refresh
-            break
+        Write-Debug "Processing override: $override"
+
+        # Split the override into client and host parts
+        $parts = $override -split '='
+        if ($parts.Count -ne 2) {
+            Write-Warning "Invalid override format (missing '='): $override"
+            continue
+        }
+
+        $clientPart = $parts[0].Trim()
+        $hostPart = $parts[1].Trim()
+
+        # Function to parse a dimension string into a hashtable
+        function Parse-Dimension {
+            param (
+                [string]$dimensionStr
+            )
+            $dimParts = $dimensionStr -split 'x'
+            if ($dimParts.Count -lt 2 -or $dimParts.Count -gt 3) {
+                return $null
+            }
+
+            $parsed = @{
+                Width   = [int]$dimParts[0]
+                Height  = [int]$dimParts[1]
+                Refresh = if ($dimParts.Count -eq 3) { [int]$dimParts[2] } else { $null }
+            }
+            return $parsed
+        }
+
+        # Parse client and host dimensions
+        $client = Parse-Dimension -dimensionStr $clientPart
+        $host_res = Parse-Dimension -dimensionStr $hostPart
+
+        if (-not $client -or -not $host_res) {
+            Write-Warning "Invalid dimension format in override: $override"
+            continue
+        }
+
+        Write-Debug "Parsed Client: Width=$($client.Width), Height=$($client.Height), Refresh=$($client.Refresh)"
+        Write-Debug "Parsed Host: Width=$($host_res.Width), Height=$($host_res.Height), Refresh=$($host_res.Refresh)"
+
+        # Check if the client dimensions match the input dimensions
+        if ($client.Width -eq $Width -and $client.Height -eq $Height) {
+            # Determine specificity: 2 if both width/height and refresh match,
+            # 1 if only width and height match, 0 otherwise
+            $specificity = 1
+            if ($null -ne $client.Refresh) {
+                if ($client.Refresh -eq $Refresh) {
+                    $specificity = 2
+                } else {
+                    # Refresh specified in override but does not match input
+                    continue
+                }
+            }
+
+            Write-Debug "Override specificity: $specificity"
+
+            # Select the override with the highest specificity
+            if ($specificity -gt $matchedSpecificity) {
+                $matchedOverride = $host_res
+                $matchedSpecificity = $specificity
+                Write-Debug "Selected override: $override with specificity $specificity"
+            }
         }
     }
 
-    Write-Host "After Overriding: $width x $height x $refresh"
+    # Apply the matched override if any
+    if ($null -ne $matchedOverride) {
+        Write-Debug "Applying override: Width=$($matchedOverride.Width), Height=$($matchedOverride.Height), Refresh=$($matchedOverride.Refresh)"
+        $Width = $matchedOverride.Width
+        $Height = $matchedOverride.Height
+        if ($null -ne $matchedOverride.Refresh) {
+            $Refresh = $matchedOverride.Refresh
+        }
+    } else {
+        Write-Debug "No matching override found."
+    }
+
+    Write-Host "After Overriding: $Width x $Height x $Refresh"
 
     return @{
-        Width   = $width
-        Height  = $height
-        Refresh = $refresh
+        Width   = $Width
+        Height  = $Height
+        Refresh = $Refresh
     }
 }
+
 
 function Set-10bitCompatibilityIfApplicable($width, $height, $refresh) {
     Write-Debug "Function Set-10bitCompatibilityIfApplicable called with Width: $width, Height: $height, Refresh: $refresh"
