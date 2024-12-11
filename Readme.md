@@ -35,8 +35,8 @@ This script will ask for elevated rights because Sunshine configuration is be lo
 
 This will only work if the resolution is available to be used, so you will need to make sure to use NVIDIA Custom Resolution or CRU to add the client resolution first.
 
-### Overrides (Setting)
-You may have a mobile device that you wish to stream at a lower resolution to save bandwidth or some devices may perform better when streaming at a lower resolution. If you want your host to change the resolution to something higher than the client, make modifications to the overrides section in the settings.json file
+### Overrides File
+You may have a mobile device that you wish to stream at a lower resolution to save bandwidth or some devices may perform better when streaming at a lower resolution. If you want your host to change the resolution to something higher than the client, use the `overrides` file to do this.
 
 #### Format
 ```
@@ -48,11 +48,5 @@ The resolution on the left is what triggers the override, and the one on the rig
 #### Example
 To stream at 720p and keep the host at 4k resolution, you would add this line:
 ```
-"overrides": [
-        // recommended for steam deck users, uncomment to enable, but make sure you have 3840x2400 added on your host!
-        // sunshine has issues downscaling to smaller resolutions, so it is recommended to stream above native (you will see a significant difference)
-        // simply uncomment below line once done
-        //"2560x1440x90=3840x2400x60",
-        "1280x720x60=3840x2160x60"
-    ]
+1280x700x60=3840x2160x60
 ```
