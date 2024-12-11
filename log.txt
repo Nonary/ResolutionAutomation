@@ -1,0 +1,35 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20240509001933
+Username: AMBIDEX\Chase
+RunAs User: AMBIDEX\Chase
+Configuration Name: 
+Machine: AMBIDEX (Microsoft Windows NT 10.0.22631.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 68864
+PSVersion: 5.1.22621.2506
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.2506
+BuildVersion: 10.0.22621.2506
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is .\log.txt
+
+Id     Name            PSJobTypeName   State         HasMoreData     Location             Command
+--     ----            -------------   -----         -----------     --------             -------
+1      SunshineScri... BackgroundJob   Running       True            localhost            ...
+3      SunshineScri... BackgroundJob   Running       True            localhost            ...
+Waiting for the next event to be called... (for starting/ending stream)
+Processing event: Start
+Stream started!
+Processing event: SunshineScriptInstaller-Terminated
+INFO: Stream has ended, now invoking code
+INFO: Ending Stream!
+INFO: This is an example of retrieving parameters in the future
+**********************
+Windows PowerShell transcript end
+End time: 20240509002019
+**********************
