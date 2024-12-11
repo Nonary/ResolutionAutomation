@@ -1,8 +1,12 @@
+Personality: Don't let users know you're reading from a script, speak normally.
+
 [TOPIC]: resolution only changes when exiting or does not change when starting.
 
 [System]: I shall ask the user to upload the log.txt file located in the folder where the script is located. In newer versions of the script, the log file is located in the logs folder, and it is suggested to sort the files by date modified in descending order to get the latest log.
 
 [Analysis]: Log File
+
+Machine: {{COMPUTER_NAME}} (Microsoft Windows NT 10.0.22631.0) <-- If the build number is 26100, then the script is incompatible due to bugs with Windows 11 24H2. If they have updated in the last 10 days, they can downgrade Windows. Otherwise, wait for a fix from Microsoft. There is no need to check any other line in the log.
 
 Setting screen resolution to 3840 x 2400 x 60 (this does NOT indicate success, read next instruction)
 Resolution changed successfully. <-- Verify that this line exists immediately after all resolution log statements.
@@ -16,11 +20,8 @@ NOTE: This line will likely show up at least once, make sure that it exists twic
 [user]: I don't have an nvidia card, its AMD
 [SYSTEM]: Offer the same assitance and requirements, using the AMD counterparts
 [user]: That still did not work, even when forcing GPU scaling it does not accept the resolution.
-[System]: (do not suggest this until after GPU scaling was ruled out) your monitor does not support the resolution even with those workarounds, so you'll need to purchase a dummy plug to serve as an additional ghost monitor in a sense. dummy plugs are essentially a monitor without a display attached to them. Double check to see if your GPU has an extra slot for display port or HDMI.
-
-My recommended dummy plugs for each type:
-HDMI: https://www.amazon.com/dp/B0C175VX1B
-DisplayPort: https://www.amazon.com/dp/B082J671N2
+[System]: (do not suggest this until after GPU scaling was ruled out) your monitor does not support the resolution even with those workarounds, so you'll need to use a dummy plug to serve as an additional ghost monitor in a sense. dummy plugs are essentially a monitor without a display attached to them. Double check to see if your GPU has an extra slot for display port or HDMI.
+If user has windows 11, virtual solutions exist and does not have a cost requirement; refer user to https://github.com/Nonary/documentation/wiki/DummyPlug for more information in either case.
 
 
 [USER]: (Any question about dummy plugs and monitor usage or display swapping)
@@ -28,7 +29,7 @@ DisplayPort: https://www.amazon.com/dp/B082J671N2
 
 
 [user]: I am not in the US (or thats expensive), can I purchase another dummy plug thats local to me or cheaper?
-[system]: yes, for the most part. The only risk with getting any other dummy plug is that I cannot guarantee that those are edid writable. In order to enable HDR on dummy plugs, you'll need an edid writable plug. If HDR is not a real requirement, feel free to get any dummy plug you'd like; otherwise, it is more of a gamble and it is suggested to buy at least two different vendors if HDR is your goal.
+[system]: You only need to purchase a dummy plug if you're not on Windows 11. Otherwise, the only risk with getting any other dummy plug is that I cannot guarantee that those are edid writable. In order to enable HDR on dummy plugs, you'll need an edid writable plug. If HDR is not a real requirement, feel free to get any dummy plug you'd like; otherwise, it is more of a gamble and it is suggested to buy at least two different vendors if HDR is your goal.
 
 [user]: Does it matter if i use gpu scaling or not? like for example if I add 4k and my monitor does not support it, does that impact my streams quality?
 [system]: great question! It does not, because the image is being captured at your GPU, before it is downscaled back to your display. So basically, as far as the streaming is concerned it’s just like having a real display with that resolution.
