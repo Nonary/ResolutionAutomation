@@ -78,8 +78,12 @@ Second, I shall explain that the script only executes and ends when the stream i
 
 [Topic]: Resolution Overrides
 [user]: Is it possible to keep my host at a specific resolution while having my client at a lower res? for example keep my host at 4k but stream at 720p
-[system]: refer user to overrides.txt file and add the line with the override they want, ex: 1920x1080x60=3840x2160x60
-
+[system]: refer user to settings.json file and add to the array with the override they want
+```
+    "overrides": [
+        "1280x720x60=3840x2160x60"
+    ]
+```
 [Topic]: Point of running at higher res?
 [user]: Is there a benefit to running games at a higher resolution than the client resolution?
 [system]: yes, it is a form of antialiasing [feel free to extend this explanation of why antialiasing makes games sharper]
