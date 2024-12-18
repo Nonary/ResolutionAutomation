@@ -13,30 +13,10 @@
         "enabled": false
     },
     "overrides": [
-        {
-            // The 'client' object specifies the resolution and refresh rate that the client will use.
-            // The 'host' object specifies the resolution and refresh rate that the host will use.
-            // This setting allows you to change the resolution of the host to something other than the client.
-            // This is useful for supersampling video games, where rendering the game at a higher resolution on the host can result in a sharper image on the client.
-            // For example, Steam Deck clients have a much sharper image when streaming at 2560x1600 at 90Hz, while the host is set for 3840x2400 at 60Hz.
-            // Additionally, this setting can be used to stream at a high frame rate that exceeds your display's maximum frame rate.
-            // This can be achieved by configuring the host to change to a lower refresh rate, and then disabling VSYNC and using a frame limiter such as RTSS (RivaTuner Statistics Server).
-            "client": {
-                "width": 3840,
-                "height": 2160,
-                "refresh": 120
-            },
-            "host": {
-                "width": 3840,
-                "height": 2160,
-                "refresh": 60
-            }
-        },
-        // Recommended for Steam Deck Users, Uncomment to enable!
-        // {
-        //     "client": {"width": 2560, "height": 1600, "refresh": 90},
-        //     "host": {"width": 3840, "height": 2400, "refresh": 60}
-        // }
+        // recommended for steam deck users, uncomment to enable, but make sure you have 3840x2400 added on your host!
+        // sunshine has issues downscaling to smaller resolutions, so it is recommended to stream above native (you will see a significant difference)
+        // simply uncomment below line once done
+        //"2560x1440x90=3840x2400x60",
     ],
     "force10BitDepthOnUnsupportedDevices": {
         // This setting attempts to enable 10-bit depth support on devices that can't support it natively, by halving the refresh rate.
