@@ -24,6 +24,12 @@ function OnStreamStart() {
     $script:arguments['original_resolution'] = Get-HostResolution
     $expectedRes = Join-Overrides -width $env:SUNSHINE_CLIENT_WIDTH -height $env:SUNSHINE_CLIENT_HEIGHT -refresh $env:SUNSHINE_CLIENT_FPS
     $expectedRes = Set-10bitCompatibilityIfApplicable -width $expectedRes.Width -height $expectedRes.Height -refresh $expectedRes.Refresh
+    # If highest refresh rate is enabled in settings, override the refresh rate with the highest available
+    if ($settings.highestRefreshRate -eq $true) {
+        $highest = Get-HighestRefreshRateForResolution $expectedRes.Width $expectedRes.Height
+        Write-Host "Highest refresh rate enabled. Overriding refresh rate to $highest."
+        $expectedRes.Refresh = $highest
+    }
     Set-ScreenResolution -Width $expectedRes.Width -Height $expectedRes.Height -Freq $expectedRes.Refresh
     Assert-ResolutionChange -width $expectedRes.Width -height $expectedRes.Height -refresh $expectedRes.Refresh
 }
@@ -51,6 +57,8 @@ function OnStreamEnd($kwargs) {
 
     return $true
 }
+
+
 
 
 Function Set-ScreenResolution($width, $height, $frequency) { 
@@ -258,4 +266,22 @@ function Set-10bitCompatibilityIfApplicable($width, $height, $refresh) {
         Height  = $height
         Refresh = $refresh
     }
+}
+
+function Get-HighestRefreshRateForResolution($width, $height) {
+    Write-Debug "Function Get-HighestRefreshRateForResolution called with Width: $width, Height: $height"
+    $highestRefresh = 0
+    $modeNum = 0
+    $devMode = New-Object DisplaySettings+DEVMODE
+    $devMode.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devMode)
+    while ([DisplaySettings]::EnumDisplaySettings([NullString]::Value, $modeNum, [ref]$devMode)) {
+        if (($devMode.dmPelsWidth -eq $width) -and ($devMode.dmPelsHeight -eq $height)) {
+            if ($devMode.dmDisplayFrequency -gt $highestRefresh) {
+                $highestRefresh = $devMode.dmDisplayFrequency
+            }
+        }
+        $modeNum++
+    }
+    Write-Debug "Highest refresh rate for resolution $width x $height is $highestRefresh"
+    return $highestRefresh
 }

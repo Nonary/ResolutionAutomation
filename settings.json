@@ -2,7 +2,8 @@
     // Enables or disables the debug log statements, which can be useful for troubleshooting issues.
     "debug": false,
     "gracePeriod": 180,
-    "startDelay": 1,
+    "startDelay": 0,
+    "sunshineConfigPath": "",
     // This setting allows you to specify a preferred screen resolution that your application will always revert to when not overridden by other settings. 
     // The 'width' and 'height' fields specify the dimensions of the preferred resolution, and the 'refresh' field specifies the refresh rate.
     // Set 'enabled' to true if you wish to enable this feature. If 'enabled' is set to false, the application will ignore these values and use the default or previously set resolution.
@@ -26,6 +27,7 @@
         "enabled": false,
         "refreshRate": 30
     },
+    "preferHighestRefreshRate": false, // Only recommended for GSYNC Users, please read https://github.com/Nonary/documentation/wiki/DummyPlugs#tips-for-gsync-users for more information.
     "installationOrderPreferences": {
         "enabled": true,
         // Set the order which the scripts are installed in, if the scripts are currently out of order, they will be reinstalled in the order specified here.

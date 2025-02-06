@@ -73,6 +73,7 @@ function Test-AndRequest-SunshineConfig {
         
 # Define the path to the Sunshine configuration file
 $confPath = Test-AndRequest-SunshineConfig -InitialPath  "C:\Program Files\Sunshine\config\sunshine.conf"
+Update-JsonProperty -FilePath "./settings.json" -Property "sunshineConfigPath" -NewValue $confPath
 $scriptRoot = Split-Path $scriptPath -Parent
 
 
@@ -107,7 +108,7 @@ function Remove-Command {
 
     # Remove any existing matching Commands
     for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
-        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptName*")) {
+        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptRoot*")) {
             $filteredCommands += $globalPrepCmdArray[$i]
         }
     }
@@ -213,7 +214,7 @@ function Add-Command {
     $command = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`" -n $scriptName"
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" -n $scriptName -t 1"
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\UndoScript.ps1`" -n $scriptName"
     }
 
     # Add the new object to the global_prep_cmd array

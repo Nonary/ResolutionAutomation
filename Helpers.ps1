@@ -12,6 +12,14 @@ $script:attempt = 0
 function OnStreamEndAsJob() {
     return Start-Job -Name "$scriptName-OnStreamEnd" -ScriptBlock {
         param($path, $scriptName, $arguments)
+
+        function Write-Debug($message){
+            if ($arguments['debug']) {
+                Write-Host "DEBUG: $message"
+            }
+        }
+
+        Write-Host $arguments
         
         Write-Debug "Setting location to $path"
         Set-Location $path
@@ -41,6 +49,12 @@ function OnStreamEndAsJob() {
                 break;
             }
 
+        
+            if ((IsCurrentlyStreaming)) {
+                Write-Host "Streaming is active. To prevent potential conflicts, this script will now terminate prematurely."
+            }
+        
+
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
                 Start-Sleep -Milliseconds 200
                 $tries++
@@ -56,7 +70,7 @@ function OnStreamEndAsJob() {
 function IsCurrentlyStreaming() {
     $sunshineProcess = Get-Process sunshine -ErrorAction SilentlyContinue
 
-    if($null -eq $sunshineProcess) {
+    if ($null -eq $sunshineProcess) {
         return $false
     }
     return $null -ne (Get-NetUDPEndpoint -OwningProcess $sunshineProcess.Id -ErrorAction Ignore)
@@ -91,7 +105,8 @@ function Send-PipeMessage($pipeName, $message) {
             # We don't care if the disposal fails, this is common with async pipes.
             # Also, this powershell script will terminate anyway.
         }
-    } else {
+    }
+    else {
         Write-Debug "Pipe not found: $pipeName"
     }
 }
@@ -105,12 +120,12 @@ function Create-Pipe($pipeName) {
         $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 10, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
         $streamReader = New-Object System.IO.StreamReader($pipe)
-        Write-Output "Waiting for named pipe to recieve kill command"
+        Write-Host "Waiting for named pipe to recieve kill command"
         $pipe.WaitForConnection()
 
         $message = $streamReader.ReadLine()
         if ($message) {
-            Write-Output "Terminating pipe..."
+            Write-Host "Terminating pipe..."
             $pipe.Dispose()
             $streamReader.Dispose()
             New-Event -SourceIdentifier $scriptName -MessageData $message
@@ -185,6 +200,47 @@ function Get-Settings {
         Write-Error "Failed to parse JSON: $_"
     }
 }
+
+function Update-JsonProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+        
+        [Parameter(Mandatory = $true)]
+        [object]$NewValue
+    )
+
+    # Read the file as a single string.
+    $content = Get-Content -Path $FilePath -Raw
+
+    if ($NewValue -is [string]) {
+        # Convert the string to a JSON-compliant string.
+        # ConvertTo-Json will take care of escaping characters properly.
+        $formattedValue = (ConvertTo-Json $NewValue -Compress)
+    }
+    else {
+        $formattedValue = $NewValue.ToString()
+    }
+
+    # Build a regex pattern for matching the property.
+    $escapedProperty = [regex]::Escape($Property)
+    $pattern = '"' + $escapedProperty + '"\s*:\s*[^,}\r\n]+'
+
+    # Build the replacement string.
+    $replacement = '"' + $Property + '": ' + $formattedValue
+
+    # Replace the matching part in the content.
+    $updatedContent = [regex]::Replace($content, $pattern, { param($match) $replacement })
+
+    # Write the updated content back.
+    Set-Content -Path $FilePath -Value $updatedContent
+}
+
+
 
 function Wait-ForStreamEndJobToComplete() {
     $job = OnStreamEndAsJob
