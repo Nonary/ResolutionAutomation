@@ -25,7 +25,7 @@ function OnStreamStart() {
     $expectedRes = Join-Overrides -width $env:SUNSHINE_CLIENT_WIDTH -height $env:SUNSHINE_CLIENT_HEIGHT -refresh $env:SUNSHINE_CLIENT_FPS
     $expectedRes = Set-10bitCompatibilityIfApplicable -width $expectedRes.Width -height $expectedRes.Height -refresh $expectedRes.Refresh
     # If highest refresh rate is enabled in settings, override the refresh rate with the highest available
-    if ($settings.highestRefreshRate -eq $true) {
+    if ($settings.preferHighestRefreshRate -eq $true) {
         $highest = Get-HighestRefreshRateForResolution $expectedRes.Width $expectedRes.Height
         Write-Host "Highest refresh rate enabled. Overriding refresh rate to $highest."
         $expectedRes.Refresh = $highest
