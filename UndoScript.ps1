@@ -52,40 +52,82 @@ try {
         exit 1
     }
 
-    ### 1. Read the Sunshine config file and extract the global_prep_cmd JSON array.
-    try {
-        $configContent = Get-Content -Path $settings.sunshineConfigPath -Raw
-    }
-    catch {
-        Write-Error "Unable to read Sunshine config file at '$($settings.sunshineConfigPath)'. Error: $_"
-        exit 1
-    }
+    # Create a hashtable to store unique commands by their undo command
+    $commandHashMap = @{}
 
-    if ($configContent -match 'global_prep_cmd\s*=\s*(\[[^\]]+\])') {
-        $jsonText = $matches[1]
+    # Function to read global_prep_cmd from a config file
+    function Get-GlobalPrepCommands {
+        param (
+            [string]$ConfigPath
+        )
+        
+        if (-not $ConfigPath -or -not (Test-Path $ConfigPath)) {
+            Write-Host "Config path not found or not specified: $ConfigPath"
+            return @()
+        }
+        
+        try {
+            $configContent = Get-Content -Path $ConfigPath -Raw
+            
+            if ($configContent -match 'global_prep_cmd\s*=\s*(\[[^\]]+\])') {
+                $jsonText = $matches[1]
+                try {
+                    $commands = $jsonText | ConvertFrom-Json
+                    if (-not ($commands -is [System.Collections.IEnumerable])) {
+                        $commands = @($commands)
+                    }
+                    return $commands
+                }
+                catch {
+                    Write-Error "Failed to parse global_prep_cmd JSON from $ConfigPath`: $_"
+                    return @()
+                }
+            }
+            else {
+                Write-Host "No valid 'global_prep_cmd' entry found in $ConfigPath."
+                return @()
+            }
+        }
+        catch {
+            Write-Error "Unable to read config file at '$ConfigPath'. Error: $_"
+            return @()
+        }
     }
-    else {
-        Write-Error "Could not find a valid 'global_prep_cmd' entry in the config file."
-        exit 1
+    
+    # Get commands from Sunshine config if available
+    if ($settings.sunshineConfigPath) {
+        Write-Host "Reading commands from Sunshine config: $($settings.sunshineConfigPath)"
+        $sunshineCommands = Get-GlobalPrepCommands -ConfigPath $settings.sunshineConfigPath
+        foreach ($cmd in $sunshineCommands) {
+            if ($cmd.undo) {
+                # Use the undo command as the key to avoid duplicates
+                $commandHashMap[$cmd.undo] = $cmd
+            }
+        }
     }
+    
+    # Get commands from Apollo config if available
+    if ($settings.apolloConfPath) {
+        Write-Host "Reading commands from Apollo config: $($settings.apolloConfPath)"
+        $apolloCommands = Get-GlobalPrepCommands -ConfigPath $settings.apolloConfPath
+        foreach ($cmd in $apolloCommands) {
+            if ($cmd.undo) {
+                # This will overwrite any duplicate keys from Sunshine config
+                $commandHashMap[$cmd.undo] = $cmd
+            }
+        }
+    }
+    
+    # Convert the hashtable values back to an array
+    $allPrepCommands = @($commandHashMap.Values)
+    
+    Write-Host "Total unique commands found: $($allPrepCommands.Count)"
 
-    try {
-        $prepCommands = $jsonText | ConvertFrom-Json
-    }
-    catch {
-        Write-Error "Failed to parse global_prep_cmd JSON: $_"
-        exit 1
-    }
-    if (-not ($prepCommands -is [System.Collections.IEnumerable])) {
-        $prepCommands = @($prepCommands)
-    }
-
-    ### 2. Filter the commands so that only those whose undo command matches one of the desired script names are processed.
+    # Filter the commands to only include those matching our desired script names
     $filteredCommands = @()
     foreach ($name in $desiredNames) {
-        # Escape the script name for regex matching.
         $regexName = [regex]::Escape($name)
-        $matchesForName = $prepCommands | Where-Object { $_.undo -match $regexName }
+        $matchesForName = $allPrepCommands | Where-Object { $_.undo -match $regexName }
         if ($matchesForName) {
             $filteredCommands += $matchesForName
         }
@@ -96,7 +138,7 @@ try {
         exit 0
     }
 
-    ### 3. Order the commands in reverse of the installation order.
+    # Order the commands in reverse of the installation order
     $desiredNamesReversed = $desiredNames.Clone()
     [Array]::Reverse($desiredNamesReversed)
     $finalCommands = @()
@@ -108,34 +150,32 @@ try {
         }
     }
 
-    ### 4. Execute the filtered undo commands synchronously.
+    # Execute the filtered undo commands synchronously
     Write-Host "Starting undo for filtered installed scripts (in reverse order):"
     foreach ($cmd in $finalCommands) {
-
         if ($cmd.undo -and $cmd.undo.Trim() -ne "") {
-            # Save the original undo command text.
+            # Save the original undo command text
             $undoCommand = $cmd.undo
 
-            if ($undoCommand -contains "PlayniteWatcher" -or $undoCommand -contains "RTSSLimiter") {
+            if ($undoCommand -match "PlayniteWatcher" -or $undoCommand -match "RTSSLimiter") {
+                Write-Host "Skipping undo command related to PlayniteWatcher or RTSSLimiter."
                 continue
             }
     
-            # Look for the -file parameter and extract its value.
+            # Look for the -file parameter and extract its value
             if ($undoCommand -match '-file\s+"([^"]+)"') {
                 $origFilePath = $matches[1]
                 $origFileName = Split-Path $origFilePath -Leaf
     
-                # If the file isn't already Helpers.ps1, replace it.
+                # If the file isn't already Helpers.ps1, replace it
                 if ($origFileName -ne "Helpers.ps1") {
-
-
                     $folder = Split-Path $origFilePath -Parent
                     $newFilePath = Join-Path $folder "Helpers.ps1"
     
-                    # Replace the original file path with the new Helpers.ps1 path.
+                    # Replace the original file path with the new Helpers.ps1 path
                     $undoCommand = $undoCommand -replace [regex]::Escape($origFilePath), $newFilePath
 
-                    if ($undoCommand -notcontains "-t 1") {
+                    if ($undoCommand -notmatch "-t\s+1") {
                         $undoCommand = $undoCommand + " -t 1"
                     }
                     Write-Host "Modified undo command to: $undoCommand"
@@ -145,7 +185,7 @@ try {
             Write-Host "Running undo command:"
             Write-Host "  $undoCommand"
             try {
-                # Execute the modified undo command synchronously.
+                # Execute the modified undo command synchronously
                 Invoke-Expression $undoCommand
                 Write-Host "Undo command completed."
             }
@@ -156,15 +196,13 @@ try {
         else {
             Write-Host "No undo command for this entry. Skipping."
         }
-        Start-Sleep -Seconds 1  # Optional pause between commands.
+        Start-Sleep -Seconds 1  # Optional pause between commands
     }
     
-
     Write-Host "All undo operations have been processed."
-
 }
 finally {
-    # Always release and dispose of the mutex.
+    # Always release and dispose of the mutex
     $mutex.ReleaseMutex()
     $mutex.Dispose()
 }

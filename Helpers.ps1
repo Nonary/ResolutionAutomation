@@ -217,24 +217,59 @@ function Update-JsonProperty {
     # Read the file as a single string.
     $content = Get-Content -Path $FilePath -Raw
 
+    # Remove comments (both // and /* */ style) and trailing commas
+    $strippedContent = $content -replace '//.*?(\r?\n|$)', '$1' # Remove single line comments
+    $strippedContent = $strippedContent -replace '/\*[\s\S]*?\*/', '' # Remove multi-line comments
+    $strippedContent = $strippedContent -replace ',(\s*[\]}])', '$1' # Remove trailing commas
+
+    # Format the new value properly
     if ($NewValue -is [string]) {
         # Convert the string to a JSON-compliant string.
-        # ConvertTo-Json will take care of escaping characters properly.
         $formattedValue = (ConvertTo-Json $NewValue -Compress)
-    }
-    else {
-        $formattedValue = $NewValue.ToString()
+    } else {
+        $formattedValue = $NewValue.ToString().ToLower()
     }
 
     # Build a regex pattern for matching the property.
     $escapedProperty = [regex]::Escape($Property)
     $pattern = '"' + $escapedProperty + '"\s*:\s*[^,}\r\n]+'
 
-    # Build the replacement string.
-    $replacement = '"' + $Property + '": ' + $formattedValue
+    # Check if the property exists in the stripped content
+    if ($strippedContent -match $pattern) {
+        # Property exists, just update its value in the original content
+        $replacement = '"' + $Property + '": ' + $formattedValue
+        $updatedContent = [regex]::Replace($content, $pattern, $replacement)
+    } else {
+        # Property doesn't exist, need to add it
+        # Find the last property in the JSON object
+        $lastPropPattern = ',?\s*"([^"]+)"\s*:\s*[^,}\r\n]+'
 
-    # Replace the matching part in the content.
-    $updatedContent = [regex]::Replace($content, $pattern, { param($match) $replacement })
+        if ($content -match '}\s*$') {
+            # Find the last occurrence of a property
+            $lastMatch = [regex]::Matches($content, $lastPropPattern)[-1]
+            $lastPropIndex = $lastMatch.Index + $lastMatch.Length
+            
+            # Check if the last property ends with a comma
+            $endsWithComma = $content.Substring($lastPropIndex).TrimStart() -match '^\s*,'
+            
+            # Prepare the new property string
+            $newPropString = ""
+            if (!$endsWithComma) {
+                $newPropString += ","
+            }
+            $newPropString += "`n    `"$Property`": $formattedValue"
+            
+            # Insert the new property before the closing brace
+            $closingBraceIndex = $content.LastIndexOf('}')
+            $updatedContent = $content.Substring(0, $closingBraceIndex).TrimEnd() + 
+                              $newPropString + 
+                              "`n}" +
+                              $content.Substring($closingBraceIndex + 1)
+        } else {
+            Write-Error "Unable to find a proper location to insert the new property. JSON file may be malformed."
+            return
+        }
+    }
 
     # Write the updated content back.
     Set-Content -Path $FilePath -Value $updatedContent

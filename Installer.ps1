@@ -14,14 +14,13 @@ $scriptPath = "$scriptRoot\StreamMonitor.ps1"
 . .\Helpers.ps1 -n $scriptName
 $settings = Get-Settings
 
-# This script modifies the global_prep_cmd setting in the Sunshine configuration file
+# This script modifies the global_prep_cmd setting in the Sunshine/Apollo configuration files
 
 function Test-UACEnabled {
     $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
     $uacEnabled = Get-ItemProperty -Path $key -Name 'EnableLUA'
     return [bool]$uacEnabled.EnableLUA
 }
-
 
 $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().Groups -match 'S-1-5-32-544')
 
@@ -31,58 +30,80 @@ if (-not $isAdmin -and (Test-UACEnabled)) {
     exit
 }
 
-function Test-AndRequest-SunshineConfig {
-    param(
-        [string]$InitialPath
-    )
-
-    # Check if the initial path exists
-    if (Test-Path $InitialPath) {
-        Write-Host "File found at: $InitialPath"
-        return $InitialPath
+function Find-ConfigurationFiles {
+    $sunshineDefaultPath = "C:\Program Files\Sunshine\config\sunshine.conf"
+    $apolloDefaultPath = "C:\Program Files\Apollo\config\sunshine.conf"
+    
+    $sunshineFound = Test-Path $sunshineDefaultPath
+    $apolloFound = Test-Path $apolloDefaultPath
+    $configPaths = @{}
+    
+    # If either one is found, use their default paths
+    if ($sunshineFound) {
+        $configPaths["Sunshine"] = $sunshineDefaultPath
+        Write-Host "Sunshine config found at: $sunshineDefaultPath"
     }
-    else {
+    
+    if ($apolloFound) {
+        $configPaths["Apollo"] = $apolloDefaultPath
+        Write-Host "Apollo config found at: $apolloDefaultPath"
+    }
+    
+    # Only prompt if neither is found
+    if (-not $sunshineFound -and -not $apolloFound) {
         # Show error message dialog
         [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
-        [System.Windows.Forms.MessageBox]::Show("Sunshine configuration could not be found. Please locate it.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)  | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("Neither Sunshine nor Apollo configuration could be found. Please locate a configuration file.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
 
         # Open file dialog
         $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
         $fileDialog.Title = "Open sunshine.conf"
         $fileDialog.Filter = "Configuration files (*.conf)|*.conf"
-        $fileDialog.InitialDirectory = [System.IO.Path]::GetDirectoryName($InitialPath)
-
+        
         if ($fileDialog.ShowDialog() -eq "OK") {
             $selectedPath = $fileDialog.FileName
             # Check if the selected path is valid
             if (Test-Path $selectedPath) {
                 Write-Host "File selected: $selectedPath"
-                return $selectedPath
+                if ($selectedPath -like "*Apollo*") {
+                    $configPaths["Apollo"] = $selectedPath
+                } else {
+                    $configPaths["Sunshine"] = $selectedPath
+                }
             }
             else {
                 Write-Error "Invalid file path selected."
+                exit 1
             }
-
         }
         else {
-            Write-Error "Sunshine Configuiration file dialog was canceled or no valid file was selected."
+            Write-Error "Configuration file dialog was canceled or no valid file was selected."
             exit 1
         }
     }
+    
+    return $configPaths
 }
-        
-# Define the path to the Sunshine configuration file
-$confPath = Test-AndRequest-SunshineConfig -InitialPath  "C:\Program Files\Sunshine\config\sunshine.conf"
-Update-JsonProperty -FilePath "./settings.json" -Property "sunshineConfigPath" -NewValue $confPath
-$scriptRoot = Split-Path $scriptPath -Parent
 
+# Find configuration files
+$configPaths = Find-ConfigurationFiles
 
+# Save paths to settings
+if ($configPaths.ContainsKey("Sunshine")) {
+    Update-JsonProperty -FilePath "./settings.json" -Property "sunshineConfigPath" -NewValue $configPaths["Sunshine"]
+}
+if ($configPaths.ContainsKey("Apollo")) {
+    Update-JsonProperty -FilePath "./settings.json" -Property "apolloConfigPath" -NewValue $configPaths["Apollo"]
+}
 
 # Get the current value of global_prep_cmd from the configuration file
 function Get-GlobalPrepCommand {
+    param (
+        [string]$ConfigPath
+    )
 
     # Read the contents of the configuration file into an array of strings
-    $config = Get-Content -Path $confPath
+    $config = Get-Content -Path $ConfigPath
 
     # Find the line that contains the global_prep_cmd setting
     $globalPrepCmdLine = $config | Where-Object { $_ -match '^global_prep_cmd\s*=' }
@@ -99,8 +120,12 @@ function Get-GlobalPrepCommand {
 
 # Remove any existing commands that contain the scripts name from the global_prep_cmd value
 function Remove-Command {
+    param (
+        [string]$ConfigPath
+    )
+
     # Get the current value of global_prep_cmd as a JSON string
-    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $confPath
+    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
 
     # Convert the JSON string to an array of objects
     $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
@@ -119,7 +144,7 @@ function Remove-Command {
 # Set a new value for global_prep_cmd in the configuration file
 function Set-GlobalPrepCommand {
     param (
-
+        [string]$ConfigPath,
         # The new value for global_prep_cmd as an array of objects
         [object[]]$Value
     )
@@ -128,15 +153,17 @@ function Set-GlobalPrepCommand {
         $Value = [object[]]@()
     }
 
-
     # Read the contents of the configuration file into an array of strings
-    $config = Get-Content -Path $confPath
+    $config = Get-Content -Path $ConfigPath
 
     # Get the current value of global_prep_cmd as a JSON string
-    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $confPath
+    $currentValueJson = Get-GlobalPrepCommand -ConfigPath $ConfigPath
 
-    # Convert the new value to a JSON string
-    $newValueJson = ConvertTo-Json -InputObject $Value -Compress
+    # Convert the new value to a JSON string - ensure proper JSON types
+    $newValueJson = ConvertTo-Json -InputObject $Value -Compress -Depth 10
+    # Fix boolean values to be JSON compliant
+    $newValueJson = $newValueJson -replace '"elevated"\s*:\s*"true"', '"elevated": true'
+    $newValueJson = $newValueJson -replace '"elevated"\s*:\s*"false"', '"elevated": false'
 
     # Replace the current value with the new value in the config array
     try {
@@ -153,12 +180,10 @@ function Set-GlobalPrepCommand {
             [object[]]$config += "global_prep_cmd = $($newValueJson)"
         }
     }
-
-
-
     # Write the modified config array back to the file
-    $config | Set-Content -Path $confPath -Force
+    $config | Set-Content -Path $ConfigPath -Force
 }
+
 function OrderCommands($commands, $scriptNames) {
     $orderedCommands = New-Object System.Collections.ArrayList
 
@@ -197,23 +222,23 @@ function OrderCommands($commands, $scriptNames) {
         if ($null -ne $afterIndex -and ($afterIndex -lt $beforeIndex)) {
             $orderedCommands.RemoveAt($afterIndex)
             $orderedCommands.Insert($beforeIndex, $afterCommand)
-
         }
-
     }
 
     $orderedCommands
-
 }
 
 function Add-Command {
+    param (
+        [string]$ConfigPath
+    )
 
     # Remove any existing commands that contain the scripts name from the global_prep_cmd value
-    $globalPrepCmdArray = Remove-Command -ConfigPath $confPath
+    $globalPrepCmdArray = Remove-Command -ConfigPath $ConfigPath
 
     $command = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`" -n $scriptName"
-        elevated = "false"
+        elevated = $false
         undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\UndoScript.ps1`" -n $scriptName"
     }
 
@@ -222,22 +247,35 @@ function Add-Command {
 
     return [object[]]$globalPrepCmdArray
 }
-$commands = @()
-if ($install -eq 1) {
-    $commands = Add-Command
-}
-else {
-    $commands = Remove-Command 
+
+# Process each found configuration file
+foreach ($key in $configPaths.Keys) {
+    $configPath = $configPaths[$key]
+    
+    $commands = @()
+    if ($install -eq 1) {
+        $commands = Add-Command -ConfigPath $configPath
+    }
+    else {
+        $commands = Remove-Command -ConfigPath $configPath 
+    }
+
+    if ($settings.installationOrderPreferences.enabled) {
+        $commands = OrderCommands $commands $settings.installationOrderPreferences.scriptNames
+    }
+
+    Set-GlobalPrepCommand -ConfigPath $configPath -Value $commands
+    
+    if ($key -eq "Sunshine") {
+        $service = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService' }
+        $service | Restart-Service -WarningAction SilentlyContinue
+        Write-Host "Sunshine configuration updated successfully!"
+    } elseif ($key -eq "Apollo") {
+        $service = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'Apollo Service' }
+        # Uncomment the line below if you want to automatically restart the service
+        $service | Restart-Service -WarningAction SilentlyContinue
+        Write-Host "Apollo configuration updated successfully!"
+    }
 }
 
-if ($settings.installationOrderPreferences.enabled) {
-    $commands = OrderCommands $commands $settings.installationOrderPreferences.scriptNames
-}
-
-Set-GlobalPrepCommand $commands
-
-$sunshineService = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService' }
-# In order for the commands to apply we have to restart the service
-$sunshineService | Restart-Service  -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
-
