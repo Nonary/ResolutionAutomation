@@ -107,9 +107,9 @@ try {
     }
     
     # Get commands from Apollo config if available
-    if ($settings.apolloConfPath) {
-        Write-Host "Reading commands from Apollo config: $($settings.apolloConfPath)"
-        $apolloCommands = Get-GlobalPrepCommands -ConfigPath $settings.apolloConfPath
+    if ($settings.apolloConfigPath) {
+        Write-Host "Reading commands from Apollo config: $($settings.apolloConfigPath)"
+        $apolloCommands = Get-GlobalPrepCommands -ConfigPath $settings.apolloConfigPath
         foreach ($cmd in $apolloCommands) {
             if ($cmd.undo) {
                 # This will overwrite any duplicate keys from Sunshine config
