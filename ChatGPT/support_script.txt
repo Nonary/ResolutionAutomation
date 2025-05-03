@@ -19,7 +19,7 @@ NOTE: This line will likely show up at least once, make sure that it exists twic
 [SYSTEM]: Offer the same assitance and requirements, using the AMD counterparts
 [user]: That still did not work, even when forcing GPU scaling it does not accept the resolution.
 [System]: (do not suggest this until after GPU scaling was ruled out) your monitor does not support the resolution even with those workarounds, so you'll need to use a dummy plug to serve as an additional ghost monitor in a sense. dummy plugs are essentially a monitor without a display attached to them. Double check to see if your GPU has an extra slot for display port or HDMI.
-If user has windows 11, virtual solutions exist and does not have a cost requirement; refer user to https://github.com/Nonary/documentation/wiki/DummyPlug for more information in either case.
+If user has windows 11, virtual solutions exist and does not have a cost requirement; refer user to https://github.com/Nonary/documentation/wiki/DummyPlugs for more information in either case.
 
 
 [USER]: (Any question about dummy plugs and monitor usage or display swapping)
@@ -84,6 +84,53 @@ Second, I shall explain that the script only executes and ends when the stream i
         "1280x720x60=3840x2160x60"
     ]
 ```
+
+[user]: What about refresh rates in overrides, are those required?
+[system]: nope, can be omitted. applying override like 1280x720=3840x2160 will work, it will pick the refresh rate that matches the client stream frame rate. Unless you have the preferHighestRefreshRate setting enabled, which will pick the highest refresh rate. This is mostly intended for machines that utilize GSYNC but not required.
+[user]: I have gsync can you elaborate more on what the preferHighestRefreshRate setting does?
+[system]: sure,
+
 [Topic]: Point of running at higher res?
 [user]: Is there a benefit to running games at a higher resolution than the client resolution?
 [system]: yes, it is a form of antialiasing [feel free to extend this explanation of why antialiasing makes games sharper]
+
+
+[Topic]: Apollo
+
+[user]: Does this work on Apollo?
+[System]: Yes, although only on the most recent versions of the script. If you are still experiencing problems make sure to download the latest update from the releases.
+
+
+[Topic]: 24H2
+[user]: Will updating to Windows 11 24H2 cause any issues?
+[system]: No, it will not. As long as you're using the latest version of the script.
+
+
+
+
+[Topic]: GSYNC
+
+[TIP]: |
+        If you use GSYNC and you follow Blur Busters’ advice—enabling VSYNC and setting a negative frame limit of about 3 frames—you will encounter issues with smooth streaming. For streaming, it's best to disable VSYNC and cap the frame rate to match your stream. This creates a challenge because when gaming directly on your host, you want VSYNC and a negative frame limit enabled.
+
+        NOTE: A dummy plug is required for this workaround, preferrably a virtual one. Refer to the other sections in this guide for assistance.
+
+        Fortunately, you can work around this by following these steps:
+
+        NVIDIA Control Panel:
+        Enable both VSYNC and Ultra Low Latency Mode for all games.
+
+        Resolution Automation Script:
+        Install the script and update the preferHighestRefreshRate settings.json and set it to true.
+
+        RTSS:
+        Install and configure RTSS (available with MSI Afterburner) and add the RTSS limiter script. This ensures your game runs at the same frame rate as your stream, and RTSS generally performs better than most built-in game frame limiters.
+
+        Why It Works:
+        Ultra Low Latency Mode reduces frames for GSYNC, but it doesn't affect displays that aren’t GSYNC-enabled—such as a virtual dummy plug. By setting the Resolution Automation Script to use the highest refresh rate, you prevent VSYNC from activating (assuming your dummy plug supports a higher refresh rate than your stream, as virtual display drivers typically do).
+
+        This configuration lets you use Blur Busters’ recommendations without compromising your streaming quality.
+
+
+
+
