@@ -19,6 +19,19 @@ This script changes your host resolution to match exactly with Moonlight's resol
 - You'll need to use the Geforce Experience version of this script instead. 
   - The current release for Geforce Experience users is: https://github.com/Nonary/ResolutionAutomation/releases/tag/2.0.15_gfe
 
+---
+# Vibeshine
+
+Vibeshine is a custom fork of Sunshine that makes display swaps smoother and more reliable as well as add exclusive features like Playnite integration, Windows Graphic Capture in Service mode and more! It is the closest experience you can get to Geforce Experience because you can add games directly with their box art in the Web UI.
+
+You can download it here: [Vibeshine](https://github.com/Nonary/vibeshine)
+
+Vibeshine also supports changing resolution in the Audio/Video tab, at Step 2: Pre stream setup select any of the options other than disabled (default).
+
+NOTE: You do not need to use this script after installing Vibeshine, but I am still maintaining it for users who rather remain on Sunshine or Apollo.
+
+---
+
 ### Installation Instructions
 1. Store the downloaded folder in a location you intend to keep. If you delete this folder or move it, the automation will stop working.
 2. To install, double click the Install.bat file.
