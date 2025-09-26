@@ -147,13 +147,15 @@ function Join-Overrides {
     Write-Debug "Function Join-Overrides called with Width: $Width, Height: $Height, Refresh: $Refresh"
 
     Write-Host "Before Overriding: $Width x $Height x $Refresh"
-
+    
     # Initialize variables to hold the best matching override
     $matchedOverride = $null
     $matchedSpecificity = -1  # Higher value means more specific
 
     foreach ($override in $settings.overrides) {
         Write-Debug "Processing override: $override"
+        # Parse json into string expected by override handler
+        $override = ($override | Select-Object @{n="settingstring";e={[string]$_.client.width+"x"+[string]$_.client.height+"x"+[string]$_.client.refresh+"="+[string]$_.host.width+"x"+[string]$_.host.height+"x"+$_.host.refresh}}).settingstring
 
         # Split the override into client and host parts
         $parts = $override -split '='
